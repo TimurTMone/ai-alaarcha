@@ -19,7 +19,7 @@ class AccommodationsListScreen extends ConsumerWidget {
         data: (items) => ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 14),
+          separatorBuilder: (_, _) => const SizedBox(height: 14),
           itemBuilder: (_, i) => AccommodationCard(
             accommodation: items[i],
             onTap: () => context.push('/accommodations/${items[i].id}'),

@@ -132,6 +132,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get showQR => 'Показать QR-код';
 
   @override
+  String get scanAtEntrance => 'Отсканируйте на входе в парк';
+
+  @override
+  String maxCapacity(int count) {
+    return 'Макс. $count';
+  }
+
+  @override
   String get passActive => 'Активный';
 
   @override

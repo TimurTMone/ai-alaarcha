@@ -334,6 +334,18 @@ abstract class AppLocalizations {
   /// **'Show QR Code'**
   String get showQR;
 
+  /// No description provided for @scanAtEntrance.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan at the park entrance'**
+  String get scanAtEntrance;
+
+  /// No description provided for @maxCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Max {count}'**
+  String maxCapacity(int count);
+
   /// No description provided for @passActive.
   ///
   /// In en, this message translates to:

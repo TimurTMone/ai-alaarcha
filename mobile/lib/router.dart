@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'core/constants/app_config.dart';
 import 'core/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
@@ -26,6 +27,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     redirect: (context, state) {
+      if (AppConfig.devMode) {
+        if (state.matchedLocation == '/login') return '/';
+        return null;
+      }
+
       final isLoggedIn = authState.valueOrNull != null;
       final isLoginRoute = state.matchedLocation == '/login';
 

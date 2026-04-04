@@ -44,6 +44,8 @@
   "student": "Студент",
   "validUntil": "Действителен до {date}",
   "showQR": "Показать QR-код",
+  "scanAtEntrance": "Отсканируйте на входе в парк",
+  "maxCapacity": "Макс. {count}",
   "passActive": "Активный",
   "passUsed": "Использован",
   "passExpired": "Истёк",

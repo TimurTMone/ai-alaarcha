@@ -53,6 +53,11 @@
     "placeholders": { "date": { "type": "String" } }
   },
   "showQR": "Show QR Code",
+  "scanAtEntrance": "Scan at the park entrance",
+  "maxCapacity": "Max {count}",
+  "@maxCapacity": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "passActive": "Active",
   "passUsed": "Used",
   "passExpired": "Expired",

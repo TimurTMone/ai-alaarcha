@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_config.dart';
+import '../../../core/mocks/mock_data.dart';
 import '../../../core/models/tour_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
 
 final _toursProvider = StreamProvider<List<Tour>>((ref) {
+  if (AppConfig.devMode) return Stream.value(MockData.tours);
   return ref.watch(firestoreServiceProvider).watchTours();
 });
 
@@ -23,7 +26,7 @@ class ToursListScreen extends ConsumerWidget {
         data: (items) => ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 14),
+          separatorBuilder: (_, _) => const SizedBox(height: 14),
           itemBuilder: (_, i) {
             final tour = items[i];
             final typeIcon = switch (tour.type) {

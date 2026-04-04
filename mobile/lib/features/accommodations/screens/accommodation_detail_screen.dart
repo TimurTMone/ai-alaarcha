@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/accommodation_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
+import 'booking_screen.dart';
 
 class AccommodationDetailScreen extends ConsumerWidget {
   final String accommodationId;
@@ -186,7 +187,13 @@ class AccommodationDetailScreen extends ConsumerWidget {
         child: SafeArea(
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Booking flow
+              final item = accommodation.valueOrNull;
+              if (item == null) return;
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BookingScreen(accommodation: item),
+                ),
+              );
             },
             child: Text(l.bookNow),
           ),

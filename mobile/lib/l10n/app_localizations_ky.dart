@@ -132,6 +132,14 @@ class AppLocalizationsKy extends AppLocalizations {
   String get showQR => 'QR кодду көрсөтүү';
 
   @override
+  String get scanAtEntrance => 'Парк киришинде сканерлеңиз';
+
+  @override
+  String maxCapacity(int count) {
+    return 'Макс. $count';
+  }
+
+  @override
   String get passActive => 'Активдүү';
 
   @override

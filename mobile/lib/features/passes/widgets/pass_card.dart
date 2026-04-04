@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/pass_model.dart';
 import '../../../core/utils/l10n_extension.dart';
+import '../screens/pass_qr_screen.dart';
 
 class PassCard extends StatelessWidget {
   final ParkPass pass;
@@ -78,7 +79,12 @@ class PassCard extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Show QR code fullscreen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PassQRScreen(pass: pass),
+                        fullscreenDialog: true,
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.qr_code_2),
                   label: Text(l.showQR),

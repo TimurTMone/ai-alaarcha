@@ -132,6 +132,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showQR => 'Show QR Code';
 
   @override
+  String get scanAtEntrance => 'Scan at the park entrance';
+
+  @override
+  String maxCapacity(int count) {
+    return 'Max $count';
+  }
+
+  @override
   String get passActive => 'Active';
 
   @override

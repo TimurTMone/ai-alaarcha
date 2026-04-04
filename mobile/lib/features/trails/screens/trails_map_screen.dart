@@ -20,7 +20,7 @@ class TrailsMapScreen extends ConsumerWidget {
         data: (items) => ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (_, i) {
             final trail = items[i];
             return _TrailCard(

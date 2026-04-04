@@ -7,7 +7,32 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ala Archa</string>
+	<string>Ala-Archa</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ala-Archa uses your location to show you nearby trails, send SOS alerts with your GPS coordinates, and navigate park routes.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Ala-Archa uses your location to track trail progress and send emergency alerts.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ala-Archa uses the camera to scan QR codes for park entry and photograph receipts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ala-Archa needs access to your photos to upload payment receipts and profile pictures.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ala-Archa can save park photos and QR passes to your photo library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ala-Archa uses the microphone for voice input to the AI concierge.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REVERSED_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

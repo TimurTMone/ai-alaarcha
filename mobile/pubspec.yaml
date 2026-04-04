@@ -38,7 +38,7 @@ dependencies:
 
   # QR
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.5
+  # mobile_scanner: ^6.0.5  # Re-add for staff gate-scanner app; needs static_framework config
 
   # Maps & Location
   mapbox_maps_flutter: ^2.5.0
@@ -62,10 +62,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
   riverpod_generator: ^2.6.3
   build_runner: ^2.4.15
   json_serializable: ^6.9.5
   json_annotation: ^4.9.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/app_icon.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
 
 flutter:
   generate: true

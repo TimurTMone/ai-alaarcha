@@ -44,6 +44,8 @@
   "student": "Студент",
   "validUntil": "{date} чейин жарактуу",
   "showQR": "QR кодду көрсөтүү",
+  "scanAtEntrance": "Парк киришинде сканерлеңиз",
+  "maxCapacity": "Макс. {count}",
   "passActive": "Активдүү",
   "passUsed": "Колдонулган",
   "passExpired": "Мөөнөтү бүткөн",
