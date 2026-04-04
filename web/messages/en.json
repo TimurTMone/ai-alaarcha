@@ -1,0 +1,55 @@
+{
+  "nav": {
+    "home": "Home",
+    "book": "Book",
+    "trails": "Trails",
+    "chat": "AI Concierge",
+    "about": "About"
+  },
+  "hero": {
+    "title": "Ala-Archa National Park",
+    "subtitle": "Your mountain escape awaits",
+    "cta": "Book Your Visit",
+    "explore": "Explore Trails"
+  },
+  "booking": {
+    "stays": "Stays",
+    "gondola": "Gondola",
+    "tours": "Tours",
+    "restaurant": "Restaurant",
+    "bookNow": "Book Now",
+    "perNight": "/ night",
+    "selectDates": "Select Dates",
+    "guests": "Guests",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "confirm": "Confirm Booking"
+  },
+  "passes": {
+    "buyPass": "Buy Park Pass",
+    "dayPass": "Day Pass",
+    "multiDay": "Multi-Day Pass",
+    "annual": "Annual Pass",
+    "citizen": "Citizen",
+    "tourist": "Tourist",
+    "child": "Child",
+    "student": "Student"
+  },
+  "trails": {
+    "title": "Trails",
+    "difficulty": "Difficulty",
+    "distance": "Distance",
+    "elevation": "Elevation",
+    "time": "Est. Time",
+    "open": "Open",
+    "caution": "Caution",
+    "closed": "Closed"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "viewAll": "View All",
+    "learnMore": "Learn More"
+  }
+}

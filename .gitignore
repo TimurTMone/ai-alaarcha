@@ -1,0 +1,69 @@
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# ── Build outputs ────────────────────────────────────────────
+# Flutter
+mobile/build/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/android/.gradle/
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/android/local.properties
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/**/*.g.dart
+mobile/**/*.freezed.dart
+
+# Next.js
+web/.next/
+web/out/
+admin/.next/
+admin/out/
+
+# Cloud Functions
+functions/lib/
+
+# ── Environment ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+
+# ── Firebase ─────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Firebase native config (regenerate via `flutterfire configure`)
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/android/app/google-services.json
+# Note: mobile/lib/firebase_options.dart IS committed as a placeholder.
+# Real values overwritten by `flutterfire configure`.
+
+# ── IDE & OS ─────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Testing ──────────────────────────────────────────────────
+coverage/
+.nyc_output/

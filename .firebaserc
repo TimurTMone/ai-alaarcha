@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "default": "ala-archa-park"
+  },
+  "targets": {
+    "ala-archa-park": {
+      "hosting": {
+        "web": ["ala-archa-web"],
+        "admin": ["ala-archa-admin"]
+      }
+    }
+  }
+}
