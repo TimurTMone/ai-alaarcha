@@ -9,13 +9,14 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
+  if (AppConfig.devMode) {
+    if (kDebugMode) {
+      debugPrint('Firebase init skipped (dev mode)');
+    }
+  } else {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
-    if (!AppConfig.devMode) rethrow;
-    if (kDebugMode) debugPrint('Firebase init skipped (dev mode): $e');
   }
 
   runApp(const ProviderScope(child: AlaArchaApp()));

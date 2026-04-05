@@ -14,6 +14,12 @@ import 'features/trails/screens/trails_map_screen.dart';
 import 'features/trails/screens/trail_detail_screen.dart';
 import 'features/tours/screens/tours_list_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import 'features/bookings/screens/booking_detail_screen.dart';
+import 'features/bookings/screens/my_bookings_screen.dart';
+import 'features/bookings/screens/payment_instructions_screen.dart';
+import 'features/bookings/screens/receipt_upload_screen.dart';
+import 'features/services/screens/service_detail_screen.dart';
+import 'features/services/screens/service_booking_screen.dart';
 import 'features/sos/screens/sos_screen.dart';
 import 'shell_screen.dart';
 
@@ -21,8 +27,6 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
@@ -32,7 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn = ref.read(authStateProvider).valueOrNull != null;
       final isLoginRoute = state.matchedLocation == '/login';
 
       if (!isLoggedIn && !isLoginRoute) return '/login';
@@ -77,6 +81,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/bookings',
+            builder: (context, state) => const MyBookingsScreen(),
+          ),
+          GoRoute(
             path: '/chat',
             builder: (context, state) => const ChatScreen(),
           ),
@@ -98,6 +106,35 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/tours',
         builder: (context, state) => const ToursListScreen(),
+      ),
+      GoRoute(
+        path: '/services/:id',
+        builder: (context, state) =>
+            ServiceDetailScreen(serviceId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: 'book',
+            builder: (context, state) =>
+                ServiceBookingScreen(serviceId: state.pathParameters['id']!),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/bookings/:id',
+        builder: (context, state) =>
+            BookingDetailScreen(bookingId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/bookings/:id/pay',
+        builder: (context, state) => PaymentInstructionsScreen(
+          bookingId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/bookings/:id/receipt',
+        builder: (context, state) => ReceiptUploadScreen(
+          bookingId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: '/sos',

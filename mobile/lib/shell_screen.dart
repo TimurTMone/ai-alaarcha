@@ -11,7 +11,7 @@ class ShellScreen extends StatelessWidget {
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/trails')) return 1;
-    if (location.startsWith('/accommodations')) return 2;
+    if (location.startsWith('/bookings')) return 2;
     if (location.startsWith('/chat')) return 3;
     if (location.startsWith('/profile')) return 4;
     return 0;
@@ -30,7 +30,7 @@ class ShellScreen extends StatelessWidget {
             case 1:
               context.go('/trails');
             case 2:
-              context.go('/accommodations');
+              context.go('/bookings');
             case 3:
               context.go('/chat');
             case 4:
@@ -51,8 +51,8 @@ class ShellScreen extends StatelessWidget {
             label: context.l10n.explore,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.hotel_outlined),
-            selectedIcon: const Icon(Icons.hotel),
+            icon: const Icon(Icons.confirmation_number_outlined),
+            selectedIcon: const Icon(Icons.confirmation_number),
             label: context.l10n.book,
           ),
           NavigationDestination(

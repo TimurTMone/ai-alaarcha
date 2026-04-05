@@ -7,6 +7,7 @@ import '../../../core/utils/l10n_extension.dart';
 import '../widgets/weather_card.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/featured_places.dart';
+import '../widgets/services_section.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -91,10 +92,14 @@ class HomeScreen extends ConsumerWidget {
             // Featured Places
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 28, 20, 20),
+                padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
                 child: FeaturedPlaces(),
               ),
             ),
+
+            // All services from alaarchapark.com
+            const SliverToBoxAdapter(child: ServicesSection()),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
         ),
       ),

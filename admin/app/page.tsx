@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const navItems = [
-  { href: "/bookings", label: "Bookings", icon: "📋", desc: "Manage all reservations" },
+  { href: "/bookings/pending", label: "Bookings", icon: "📋", desc: "Approval queue" },
   { href: "/accommodations", label: "Accommodations", icon: "🏔", desc: "Rooms, cabins, domes" },
   { href: "/passes", label: "Entry Passes", icon: "🎫", desc: "Pass sales & scanning" },
   { href: "/restaurant", label: "Restaurant", icon: "🍽", desc: "Tables & reservations" },
