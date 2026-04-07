@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const navItems = [
   { href: "/bookings/pending", label: "Bookings", icon: "📋", desc: "Approval queue" },
-  { href: "/accommodations", label: "Accommodations", icon: "🏔", desc: "Rooms, cabins, domes" },
+  { href: "/services", label: "Services", icon: "🏔", desc: "All services & prices" },
   { href: "/passes", label: "Entry Passes", icon: "🎫", desc: "Pass sales & scanning" },
   { href: "/restaurant", label: "Restaurant", icon: "🍽", desc: "Tables & reservations" },
   { href: "/gondola", label: "Gondola", icon: "🚡", desc: "Time slots & capacity" },

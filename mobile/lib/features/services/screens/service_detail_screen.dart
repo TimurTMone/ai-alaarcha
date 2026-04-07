@@ -34,21 +34,20 @@ class ServiceDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero placeholder
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+            // Hero: show first image or placeholder
+            if (service.images.isNotEmpty)
+              ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Icon(
-                  _iconFor(service.category),
-                  size: 72,
-                  color: AppColors.primary,
+                child: Image.network(
+                  service.images.first,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _heroPlaceholder(service),
                 ),
-              ),
-            ),
+              )
+            else
+              _heroPlaceholder(service),
             const SizedBox(height: 20),
             if (service.venue != null)
               Text(
@@ -93,6 +92,14 @@ class ServiceDetailScreen extends ConsumerWidget {
                 icon: Icons.group_outlined,
                 label: _capacityLabel(locale),
                 value: '${service.capacity}',
+              ),
+            ],
+            if (service.phone != null) ...[
+              const SizedBox(height: 12),
+              _InfoRow(
+                icon: Icons.phone_outlined,
+                label: _phoneLabel(locale),
+                value: service.phone!,
               ),
             ],
             const SizedBox(height: 36),
@@ -161,6 +168,23 @@ class ServiceDetailScreen extends ConsumerWidget {
   static String _bookLabel(String l) =>
       {'en': 'Book Now', 'ru': 'Забронировать', 'ky': 'Брондоо'}[l] ??
       'Забронировать';
+  static String _phoneLabel(String l) =>
+      {'en': 'Phone', 'ru': 'Телефон', 'ky': 'Телефон'}[l] ?? 'Телефон';
+
+  static Widget _heroPlaceholder(Service service) => Container(
+        height: 180,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Icon(
+            _iconFor(service.category),
+            size: 72,
+            color: AppColors.primary,
+          ),
+        ),
+      );
 }
 
 class _InfoRow extends StatelessWidget {

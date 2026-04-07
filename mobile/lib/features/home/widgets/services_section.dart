@@ -11,7 +11,10 @@ class ServicesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = Localizations.localeOf(context).languageCode;
-    final services = ref.watch(servicesProvider);
+    final servicesAsync = ref.watch(servicesProvider);
+    final services = servicesAsync.valueOrNull ?? const <Service>[];
+
+    if (services.isEmpty) return const SizedBox.shrink();
 
     final byCategory = <ServiceCategory, List<Service>>{};
     for (final s in services) {
