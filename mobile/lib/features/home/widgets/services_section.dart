@@ -57,7 +57,7 @@ class ServicesSection extends ConsumerWidget {
               ),
             ),
             SizedBox(
-              height: 152,
+              height: 220,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -127,94 +127,103 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = service.images.isNotEmpty;
+
     return SizedBox(
-      width: 220,
+      width: 180,
       child: Card(
         clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: () => context.push('/services/${service.id}'),
-          child: Padding(
-          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (service.venue != null)
-                Text(
-                  service.venue!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.secondaryDark,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              if (service.venue != null) const SizedBox(height: 4),
-              Text(
-                service.localizedName(locale),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  height: 1.2,
-                ),
+              // Image or icon header
+              SizedBox(
+                height: 100,
+                width: double.infinity,
+                child: hasImage
+                    ? Image.network(
+                        service.images.first,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _iconPlaceholder(service),
+                      )
+                    : _iconPlaceholder(service),
               ),
-              const SizedBox(height: 6),
               Expanded(
-                child: Text(
-                  service.localizedDescription(locale),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                    height: 1.3,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (service.venue != null)
+                        Text(
+                          service.venue!,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondaryDark,
+                          ),
+                        ),
+                      Text(
+                        service.localizedName(locale),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          height: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            _formatPrice(service.priceKgs),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              'KGS ${_unitLabel(service.unit, locale)}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textTertiary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    _formatPrice(service.priceKgs),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'KGS',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _unitLabel(service.unit, locale),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textTertiary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
         ),
-        ),
       ),
     );
   }
+
+  static Widget _iconPlaceholder(Service service) => Container(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        child: Center(
+          child: Icon(
+            ServicesSection._iconFor(service.category),
+            size: 36,
+            color: AppColors.primary,
+          ),
+        ),
+      );
 
   static String _formatPrice(int kgs) {
     final s = kgs.toString();
