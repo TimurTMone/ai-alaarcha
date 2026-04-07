@@ -79,9 +79,15 @@ const services = [
     category: 'hotel', priceKgs: 4000, unit: 'perNight', capacity: 2, venue: 'Ala-Archa Hotel', phone: '+996 701 551 026', images: [], isActive: true,
   },
   {
+    id: 's-hotel-ala-archa-mattress',
+    name: { en: 'Extra Mattress with Bedding', ru: 'Доп. матрас с бельём', ky: 'Кошумча матрас менен төшөк' },
+    description: { en: 'Additional mattress in shared room', ru: 'Дополнительный матрас в номере', ky: 'Номерге кошумча матрас' },
+    category: 'hotel', priceKgs: 500, unit: 'perNight', venue: 'Ala-Archa Hotel', phone: '+996 701 551 026', images: [], isActive: true,
+  },
+  {
     id: 's-hotel-akmaral',
     name: { en: 'Rooms #1–3', ru: 'Номера №1–3', ky: 'Номерлер №1–3' },
-    description: { en: 'Double room', ru: 'Двухместный номер', ky: 'Эки кишилик номер' },
+    description: { en: 'Double rooms (Room #2 has large hall, Room #3 has small hall for 4)', ru: 'Двухместные номера (№2 с большим залом, №3 с малым залом на 4)', ky: 'Эки кишилик номерлер (№2 чоң зал, №3 4 кишиге кичи зал)' },
     category: 'hotel', priceKgs: 4000, unit: 'perNight', capacity: 2, venue: 'Ak-Maral Hotel', phone: '+996 505 960 097', images: [], isActive: true,
   },
   {
@@ -139,6 +145,7 @@ const services = [
   { id: 's-extra-blankets', name: { en: 'Blankets', ru: 'Одеяла', ky: 'Жууркан' }, description: { en: '4 hours, 2 pieces', ru: '4 часа, 2 штуки', ky: '4 саат, 2 даана' }, category: 'extra', priceKgs: 200, unit: 'flat', images: [], isActive: true },
   { id: 's-extra-shower', name: { en: 'Shower', ru: 'Душ', ky: 'Душ' }, description: { en: 'Per person, per hour', ru: 'С человека в час', ky: 'Бир кишиге, сааттык' }, category: 'extra', priceKgs: 100, unit: 'perHour', images: [], isActive: true },
   { id: 's-extra-restroom', name: { en: 'Restroom', ru: 'Туалет', ky: 'Даараткана' }, description: { en: 'Per person', ru: 'С человека', ky: 'Бир кишиге' }, category: 'extra', priceKgs: 10, unit: 'perPerson', images: [], isActive: true },
+  { id: 's-extra-waiter', name: { en: 'Waiter Service', ru: 'Обслуживание официантом', ky: 'Официант кызматы' }, description: { en: '10% of order total', ru: '10% от суммы заказа', ky: 'Заказдын суммасынын 10%' }, category: 'extra', priceKgs: 0, unit: 'flat', images: [], isActive: true },
 ];
 
 // ═══════════════════════════════════════════════════════════════

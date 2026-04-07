@@ -189,6 +189,24 @@ abstract final class MockServices {
       capacity: 2,
     ),
     Service(
+      id: 's-hotel-ala-archa-mattress',
+      venue: 'Ala-Archa Hotel',
+      name: {
+        'en': 'Extra Mattress with Bedding',
+        'ru': 'Доп. матрас с бельём',
+        'ky': 'Кошумча матрас менен төшөк',
+      },
+      description: {
+        'en': 'Additional mattress in shared room',
+        'ru': 'Дополнительный матрас в номере',
+        'ky': 'Номерге кошумча матрас',
+      },
+      category: ServiceCategory.hotel,
+      priceKgs: 500,
+      unit: PriceUnit.perNight,
+      phone: '+996 701 551 026',
+    ),
+    Service(
       id: 's-hotel-akmaral',
       venue: 'Ak-Maral Hotel',
       name: {
@@ -197,9 +215,9 @@ abstract final class MockServices {
         'ky': 'Номерлер №1–3',
       },
       description: {
-        'en': 'Double room',
-        'ru': 'Двухместный номер',
-        'ky': 'Эки кишилик номер',
+        'en': 'Double rooms (Room #2 has large hall, Room #3 has small hall for 4)',
+        'ru': 'Двухместные (№2 с большим залом, №3 с малым залом на 4)',
+        'ky': 'Эки кишилик (№2 чоң зал, №3 4 кишиге кичи зал)',
       },
       category: ServiceCategory.hotel,
       priceKgs: 4000,
