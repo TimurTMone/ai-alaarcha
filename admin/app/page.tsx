@@ -9,6 +9,7 @@ const navItems = [
   { href: "/tours", label: "Tours", icon: "🥾", desc: "Tours & guides" },
   { href: "/chat-monitor", label: "AI Chat", icon: "🤖", desc: "Monitor AI concierge" },
   { href: "/users", label: "Users", icon: "👥", desc: "User management" },
+  { href: "/uploads", label: "Uploads", icon: "📷", desc: "Telegram bot photos" },
   { href: "/content/news", label: "Content", icon: "📰", desc: "News, gallery, trails" },
   { href: "/sos", label: "SOS", icon: "🆘", desc: "Emergency alerts" },
   { href: "/analytics", label: "Analytics", icon: "📊", desc: "Revenue & visitors" },

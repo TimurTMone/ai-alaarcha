@@ -7,6 +7,7 @@ import '../../../core/utils/l10n_extension.dart';
 import '../widgets/weather_card.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/featured_places.dart';
+import '../widgets/announcements_rail.dart';
 import '../widgets/services_section.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -96,6 +97,9 @@ class HomeScreen extends ConsumerWidget {
                 child: FeaturedPlaces(),
               ),
             ),
+
+            // Announcements from Telegram bot
+            const SliverToBoxAdapter(child: AnnouncementsRail()),
 
             // All services from alaarchapark.com
             const SliverToBoxAdapter(child: ServicesSection()),

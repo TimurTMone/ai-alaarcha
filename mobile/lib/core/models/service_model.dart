@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum ServiceCategory { hotel, venue, recreation, rental, extra }
+enum ServiceCategory { entrance, hotel, venue, recreation, rental, extra }
 
-enum PriceUnit { perNight, perHour, perDay, perPerson, perTable, perItem, flat }
+enum PriceUnit { perNight, perHour, perDay, perPerson, perTable, perItem, perVehicle, flat }
 
 class Service {
   final String id;

@@ -121,6 +121,7 @@ class ServiceDetailScreen extends ConsumerWidget {
   }
 
   static IconData _iconFor(ServiceCategory c) => switch (c) {
+        ServiceCategory.entrance => Icons.directions_car,
         ServiceCategory.hotel => Icons.hotel,
         ServiceCategory.venue => Icons.meeting_room,
         ServiceCategory.recreation => Icons.park,
@@ -146,9 +147,10 @@ class ServiceDetailScreen extends ConsumerWidget {
       PriceUnit.perPerson: {'en': '/ person', 'ru': '/ чел.', 'ky': '/ киши'},
       PriceUnit.perTable: {'en': '/ table', 'ru': '/ стол', 'ky': '/ үстөл'},
       PriceUnit.perItem: {'en': '/ item', 'ru': '/ шт.', 'ky': '/ даана'},
+      PriceUnit.perVehicle: {'en': '/ vehicle', 'ru': '/ авто', 'ky': '/ унаа'},
       PriceUnit.flat: {'en': '', 'ru': '', 'ky': ''},
     };
-    return labels[u]![locale] ?? labels[u]!['ru']!;
+    return labels[u]?[locale] ?? labels[u]?['ru'] ?? '';
   }
 
   static String _priceLabel(String l) =>

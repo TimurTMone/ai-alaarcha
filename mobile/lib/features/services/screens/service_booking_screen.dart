@@ -22,14 +22,24 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _quantity = 1;
+  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
-  Future<void> _pickDate({required bool isStart}) async {
+  Future<void> _pickDate({
+    required bool isStart,
+    Set<DateTime>? blockedDates,
+  }) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
       initialDate: isStart ? (_startDate ?? now) : (_endDate ?? now),
+      selectableDayPredicate: blockedDates != null
+          ? (day) {
+              final normalized = DateTime(day.year, day.month, day.day);
+              return !blockedDates.contains(normalized);
+            }
+          : null,
     );
     if (picked != null) {
       setState(() {
@@ -57,6 +67,7 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
       case PriceUnit.perTable:
       case PriceUnit.perItem:
         return _quantity;
+      case PriceUnit.perVehicle:
       case PriceUnit.flat:
         return 1;
     }
@@ -66,11 +77,21 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     switch (unit) {
       case PriceUnit.perNight:
         return _computeQuantityForTotal(unit) > 0;
+      case PriceUnit.perVehicle:
       case PriceUnit.flat:
         return true;
       default:
         return _startDate != null && _quantity > 0;
     }
+  }
+
+  /// Check if the selected date range overlaps with any existing booking.
+  bool _hasConflict(List<DateRange> bookedRanges) {
+    if (_startDate == null || _endDate == null) return false;
+    for (final r in bookedRanges) {
+      if (r.overlaps(_startDate!, _endDate!)) return true;
+    }
+    return false;
   }
 
   void _submit(Service service) {
@@ -109,6 +130,19 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
       );
     }
 
+    // Load booked ranges for perNight services (hotels).
+    final isHotel = service.unit == PriceUnit.perNight;
+    final rangesAsync = isHotel
+        ? ref.watch(bookedRangesProvider(service.id))
+        : null;
+
+    final bookedRanges = rangesAsync?.valueOrNull ?? const <DateRange>[];
+    final blockedDates = <DateTime>{};
+    for (final r in bookedRanges) {
+      blockedDates.addAll(r.occupiedDates);
+    }
+
+    final conflict = isHotel && _hasConflict(bookedRanges);
     final qty = _computeQuantityForTotal(service.unit);
     final total = service.priceKgs * qty;
 
@@ -117,7 +151,7 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Service summary
+          // Service summary card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -154,8 +188,85 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Form adapts to unit
-          ..._buildFormFields(service, locale),
+          // ── Availability calendar for hotels ──
+          if (isHotel) ...[
+            Text(
+              _availabilityTitle(locale),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _AvailabilityLegend(locale: locale),
+            const SizedBox(height: 8),
+            _AvailabilityCalendar(
+              month: _calendarMonth,
+              blockedDates: blockedDates,
+              selectedStart: _startDate,
+              selectedEnd: _endDate,
+              onPrevMonth: () => setState(() {
+                _calendarMonth = DateTime(
+                  _calendarMonth.year,
+                  _calendarMonth.month - 1,
+                );
+              }),
+              onNextMonth: () => setState(() {
+                _calendarMonth = DateTime(
+                  _calendarMonth.year,
+                  _calendarMonth.month + 1,
+                );
+              }),
+              onDayTap: (day) {
+                setState(() {
+                  if (_startDate == null || _endDate != null) {
+                    _startDate = day;
+                    _endDate = null;
+                  } else {
+                    if (day.isAfter(_startDate!)) {
+                      _endDate = day;
+                    } else {
+                      _startDate = day;
+                    }
+                  }
+                });
+              },
+              locale: locale,
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Form fields
+          ..._buildFormFields(service, locale, blockedDates),
+
+          if (conflict) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.block, color: AppColors.error, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _conflictLabel(locale),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 24),
 
@@ -191,7 +302,10 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _canSubmit(service.unit) ? () => _submit(service) : null,
+              onPressed:
+                  _canSubmit(service.unit) && !conflict
+                      ? () => _submit(service)
+                      : null,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: AppColors.primary,
@@ -207,14 +321,18 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     );
   }
 
-  List<Widget> _buildFormFields(Service service, String locale) {
+  List<Widget> _buildFormFields(
+    Service service,
+    String locale,
+    Set<DateTime> blockedDates,
+  ) {
     switch (service.unit) {
       case PriceUnit.perNight:
         return [
           _dateTile(
             label: _checkInLabel(locale),
             date: _startDate,
-            onTap: () => _pickDate(isStart: true),
+            onTap: () => _pickDate(isStart: true, blockedDates: blockedDates),
           ),
           const SizedBox(height: 12),
           _dateTile(
@@ -223,6 +341,7 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
             onTap: () => _pickDate(isStart: false),
           ),
         ];
+      case PriceUnit.perVehicle:
       case PriceUnit.flat:
         return [
           Text(
@@ -320,6 +439,8 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     );
   }
 
+  // ── i18n labels ────────────────────────────────────────────────────
+
   static String _bookTitle(String l) =>
       {'en': 'Book', 'ru': 'Бронирование', 'ky': 'Брондоо'}[l] ?? 'Бронирование';
   static String _totalLabel(String l) =>
@@ -340,6 +461,20 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
         'ky': 'Белгиленген баалуу кызмат. Төлөмгө өтүңүз.',
       }[l] ??
       'Услуга с фиксированной ценой.';
+  static String _availabilityTitle(String l) =>
+      {
+        'en': 'Availability',
+        'ru': 'Доступность',
+        'ky': 'Жеткиликтүүлүк',
+      }[l] ??
+      'Доступность';
+  static String _conflictLabel(String l) =>
+      {
+        'en': 'These dates are already booked. Please pick different dates.',
+        'ru': 'Эти даты уже заняты. Выберите другие даты.',
+        'ky': 'Бул даталар бронь кылынган. Башка даталарды тандаңыз.',
+      }[l] ??
+      'Эти даты заняты.';
 
   static String _quantityLabel(PriceUnit u, String l) {
     const m = {
@@ -360,8 +495,252 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
       PriceUnit.perPerson: {'en': '/ person', 'ru': '/ чел.', 'ky': '/ киши'},
       PriceUnit.perTable: {'en': '/ table', 'ru': '/ стол', 'ky': '/ үстөл'},
       PriceUnit.perItem: {'en': '/ item', 'ru': '/ шт.', 'ky': '/ даана'},
+      PriceUnit.perVehicle: {'en': '/ vehicle', 'ru': '/ авто', 'ky': '/ унаа'},
       PriceUnit.flat: {'en': '', 'ru': '', 'ky': ''},
     };
     return m[u]?[l] ?? m[u]?['ru'] ?? '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Availability calendar widget
+// ═══════════════════════════════════════════════════════════════════════
+
+class _AvailabilityLegend extends StatelessWidget {
+  const _AvailabilityLegend({required this.locale});
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _dot(AppColors.success),
+        const SizedBox(width: 4),
+        Text(_availableLabel, style: _style),
+        const SizedBox(width: 16),
+        _dot(AppColors.error),
+        const SizedBox(width: 4),
+        Text(_bookedLabel, style: _style),
+        const SizedBox(width: 16),
+        _dot(AppColors.primary),
+        const SizedBox(width: 4),
+        Text(_selectedLabel, style: _style),
+      ],
+    );
+  }
+
+  Widget _dot(Color c) => Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+      );
+
+  static const _style = TextStyle(fontSize: 11, color: AppColors.textSecondary);
+
+  String get _availableLabel =>
+      {'en': 'Available', 'ru': 'Свободно', 'ky': 'Бош'}[locale] ?? 'Свободно';
+  String get _bookedLabel =>
+      {'en': 'Booked', 'ru': 'Занято', 'ky': 'Бронь'}[locale] ?? 'Занято';
+  String get _selectedLabel =>
+      {'en': 'Selected', 'ru': 'Выбрано', 'ky': 'Тандалды'}[locale] ?? 'Выбрано';
+}
+
+class _AvailabilityCalendar extends StatelessWidget {
+  const _AvailabilityCalendar({
+    required this.month,
+    required this.blockedDates,
+    required this.selectedStart,
+    required this.selectedEnd,
+    required this.onPrevMonth,
+    required this.onNextMonth,
+    required this.onDayTap,
+    required this.locale,
+  });
+
+  final DateTime month;
+  final Set<DateTime> blockedDates;
+  final DateTime? selectedStart;
+  final DateTime? selectedEnd;
+  final VoidCallback onPrevMonth;
+  final VoidCallback onNextMonth;
+  final void Function(DateTime) onDayTap;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDay = DateTime(month.year, month.month, 1);
+    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final startWeekday = firstDay.weekday; // 1=Mon, 7=Sun
+    final today = DateTime.now();
+    final todayNorm = DateTime(today.year, today.month, today.day);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          // Month header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: onPrevMonth,
+                  icon: const Icon(Icons.chevron_left, size: 20),
+                ),
+                Text(
+                  '${_monthName(month.month, locale)} ${month.year}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                IconButton(
+                  onPressed: onNextMonth,
+                  icon: const Icon(Icons.chevron_right, size: 20),
+                ),
+              ],
+            ),
+          ),
+          // Day-of-week headers
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: _weekdayHeaders(locale)
+                  .map((h) => Expanded(
+                        child: Center(
+                          child: Text(
+                            h,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Day grid
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 2,
+                crossAxisSpacing: 2,
+              ),
+              itemCount: ((startWeekday - 1) + daysInMonth + 6) ~/ 7 * 7,
+              itemBuilder: (context, index) {
+                final dayOffset = index - (startWeekday - 1);
+                if (dayOffset < 0 || dayOffset >= daysInMonth) {
+                  return const SizedBox.shrink();
+                }
+                final day = DateTime(month.year, month.month, dayOffset + 1);
+                final isBlocked = blockedDates.contains(day);
+                final isPast = day.isBefore(todayNorm);
+                final isSelected = _isDaySelected(day);
+                final isInRange = _isDayInRange(day);
+
+                Color bgColor;
+                Color textColor;
+                if (isSelected) {
+                  bgColor = AppColors.primary;
+                  textColor = Colors.white;
+                } else if (isInRange) {
+                  bgColor = AppColors.primary.withValues(alpha: 0.15);
+                  textColor = AppColors.primary;
+                } else if (isBlocked) {
+                  bgColor = AppColors.error.withValues(alpha: 0.12);
+                  textColor = AppColors.error;
+                } else if (isPast) {
+                  bgColor = Colors.transparent;
+                  textColor = AppColors.textTertiary;
+                } else {
+                  bgColor = AppColors.success.withValues(alpha: 0.08);
+                  textColor = AppColors.textPrimary;
+                }
+
+                return GestureDetector(
+                  onTap:
+                      (isBlocked || isPast) ? null : () => onDayTap(day),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${dayOffset + 1}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: textColor,
+                        decoration: isBlocked
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isDaySelected(DateTime day) {
+    if (selectedStart != null &&
+        day.year == selectedStart!.year &&
+        day.month == selectedStart!.month &&
+        day.day == selectedStart!.day) {
+      return true;
+    }
+    if (selectedEnd != null &&
+        day.year == selectedEnd!.year &&
+        day.month == selectedEnd!.month &&
+        day.day == selectedEnd!.day) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _isDayInRange(DateTime day) {
+    if (selectedStart == null || selectedEnd == null) return false;
+    return day.isAfter(selectedStart!) && day.isBefore(selectedEnd!);
+  }
+
+  static String _monthName(int m, String l) {
+    const ru = [
+      '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+    ];
+    const en = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    const ky = [
+      '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+    ];
+    if (l == 'en') return en[m];
+    if (l == 'ky') return ky[m];
+    return ru[m];
+  }
+
+  static List<String> _weekdayHeaders(String l) {
+    if (l == 'en') return ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    if (l == 'ky') return ['Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш', 'Жк'];
+    return ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   }
 }

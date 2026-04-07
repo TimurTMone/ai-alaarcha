@@ -23,7 +23,7 @@ import 'features/services/screens/service_booking_screen.dart';
 import 'features/sos/screens/sos_screen.dart';
 import 'shell_screen.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _rootNavigatorKey = fcmNavigatorKey;
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/auth_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'router.dart';
 
@@ -10,6 +11,9 @@ class AlaArchaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+
+    // Kick off FCM init once auth resolves (no-op in devMode).
+    ref.watch(fcmInitProvider);
 
     return MaterialApp.router(
       title: 'Ala-Archa',

@@ -19,6 +19,7 @@ class ServicesSection extends ConsumerWidget {
     }
 
     const categoryOrder = [
+      ServiceCategory.entrance,
       ServiceCategory.hotel,
       ServiceCategory.venue,
       ServiceCategory.recreation,
@@ -69,6 +70,7 @@ class ServicesSection extends ConsumerWidget {
   }
 
   static IconData _iconFor(ServiceCategory c) => switch (c) {
+        ServiceCategory.entrance => Icons.directions_car,
         ServiceCategory.hotel => Icons.hotel,
         ServiceCategory.venue => Icons.meeting_room,
         ServiceCategory.recreation => Icons.park,
@@ -78,6 +80,11 @@ class ServicesSection extends ConsumerWidget {
 
   static String _titleFor(ServiceCategory c, String locale) {
     const titles = {
+      ServiceCategory.entrance: {
+        'en': 'Park Entry',
+        'ru': 'Въезд в парк',
+        'ky': 'Паркка кирүү',
+      },
       ServiceCategory.hotel: {
         'en': 'Hotels',
         'ru': 'Гостиницы',
@@ -224,6 +231,7 @@ class _ServiceCard extends StatelessWidget {
       PriceUnit.perPerson: {'en': '/ person', 'ru': '/ чел.', 'ky': '/ киши'},
       PriceUnit.perTable: {'en': '/ table', 'ru': '/ стол', 'ky': '/ үстөл'},
       PriceUnit.perItem: {'en': '/ item', 'ru': '/ шт.', 'ky': '/ даана'},
+      PriceUnit.perVehicle: {'en': '/ vehicle', 'ru': '/ авто', 'ky': '/ унаа'},
       PriceUnit.flat: {'en': '', 'ru': '', 'ky': ''},
     };
     final m = labels[u]!;

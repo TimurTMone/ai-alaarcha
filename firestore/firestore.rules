@@ -156,6 +156,24 @@ service cloud.firestore {
       allow update: if isStaff();
     }
 
+    // ── Announcements ─────────────────────────────────────────────
+    match /announcements/{announcementId} {
+      allow read: if true; // Public
+      allow write: if isAdmin(); // Created via Telegram bot (admin SDK) or admin dashboard
+    }
+
+    // ── Telegram Uploads (audit log) ────────────────────────────
+    match /telegram_uploads/{uploadId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin(); // Only via Cloud Functions (admin SDK)
+    }
+
+    // ── Services (public, photos appended by Telegram bot) ──────
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ── Park Config ─────────────────────────────────────────────────
     match /park_config/{docId} {
       allow read: if true;

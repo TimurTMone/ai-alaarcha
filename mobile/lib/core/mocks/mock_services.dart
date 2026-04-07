@@ -4,6 +4,117 @@ import '../models/service_model.dart';
 /// Prices are in KGS (Kyrgyz som).
 abstract final class MockServices {
   static const List<Service> all = [
+    // ───────────── ENTRANCE FEES ─────────────
+    // NOTE: Since May 2025, gas/diesel/LPG vehicles are PROHIBITED.
+    // Only electric vehicles allowed (800 KGS). Parking at entrance (2,500 spots).
+    // Old per-vehicle fees below kept for reference / future re-enablement.
+    Service(
+      id: 's-entrance-adult',
+      name: {
+        'en': 'Adult Entry',
+        'ru': 'Вход (взрослый)',
+        'ky': 'Кирүү (чоң киши)',
+      },
+      description: {
+        'en': 'Per person entry fee (adults)',
+        'ru': 'Входной билет с человека (взрослый)',
+        'ky': 'Бир чоң кишиге кирүү акысы',
+      },
+      category: ServiceCategory.entrance,
+      priceKgs: 200,
+      unit: PriceUnit.perPerson,
+    ),
+    Service(
+      id: 's-entrance-child',
+      name: {
+        'en': 'Child Entry (7–14)',
+        'ru': 'Вход (ребёнок 7–14)',
+        'ky': 'Кирүү (бала 7–14)',
+      },
+      description: {
+        'en': 'Per child (7–14 years)',
+        'ru': 'Входной билет для детей 7–14 лет',
+        'ky': '7–14 жаштагы балдар үчүн',
+      },
+      category: ServiceCategory.entrance,
+      priceKgs: 150,
+      unit: PriceUnit.perPerson,
+    ),
+    Service(
+      id: 's-entrance-electric-vehicle',
+      name: {
+        'en': 'Electric Vehicle Entry',
+        'ru': 'Въезд электромобиля',
+        'ky': 'Электромобиль кирүү',
+      },
+      description: {
+        'en': 'Entry for electric vehicles only (gas/diesel prohibited)',
+        'ru': 'Въезд для электромобилей (бензин/дизель запрещён)',
+        'ky': 'Электромобилдер үчүн гана (бензин/дизель тыюу)',
+      },
+      category: ServiceCategory.entrance,
+      priceKgs: 800,
+      unit: PriceUnit.perVehicle,
+    ),
+    Service(
+      id: 's-entrance-gondola',
+      name: {
+        'en': 'Gondola (round trip)',
+        'ru': 'Канатная дорога (туда-обратно)',
+        'ky': 'Канат жол (бара-кайтара)',
+      },
+      description: {
+        'en':
+            'Doppelmayr gondola, 1 km, 2166→2494 m. 16 cabins (10-seat + 2 VIP 4-seat). Cashless only.',
+        'ru':
+            'Гондола Doppelmayr, 1 км, 2166→2494 м. 16 кабин (10 мест + 2 VIP на 4). Только безнал.',
+        'ky':
+            'Doppelmayr гондоласы, 1 км, 2166→2494 м. 16 кабина (10 орун + 2 VIP 4 орун). Накталай эмес гана.',
+      },
+      category: ServiceCategory.entrance,
+      priceKgs: 600,
+      unit: PriceUnit.perPerson,
+    ),
+    Service(
+      id: 's-entrance-gondola-child',
+      name: {
+        'en': 'Gondola — Child (round trip)',
+        'ru': 'Канатная дорога — ребёнок',
+        'ky': 'Канат жол — бала',
+      },
+      description: {
+        'en': 'Round trip gondola ticket for children',
+        'ru': 'Проезд на канатной дороге для детей (туда-обратно)',
+        'ky': 'Балдар үчүн канат жолго билет (бара-кайтара)',
+      },
+      category: ServiceCategory.entrance,
+      priceKgs: 400,
+      unit: PriceUnit.perPerson,
+    ),
+
+    // ───────────── KHAN-TENIRI ─────────────
+    Service(
+      id: 's-kt-barnhouse',
+      venue: 'Khan-Teniri',
+      name: {
+        'en': 'Khan-Teniri Barnhouse',
+        'ru': 'Барнхаус Khan-Teniri',
+        'ky': 'Khan-Teniri барнхаусу',
+      },
+      description: {
+        'en':
+            'Modern barnhouse with sauna & jacuzzi. Free gondola for guests. \$250/night.',
+        'ru':
+            'Современный барнхаус с сауной и джакузи. Бесплатная канатка для гостей. \$250/ночь.',
+        'ky':
+            'Заманбап барнхаус, сауна жана джакузи. Конокторго канат жол акысыз. \$250/түнгө.',
+      },
+      category: ServiceCategory.hotel,
+      priceKgs: 21500, // ~$250 at ~86 KGS/USD
+      unit: PriceUnit.perNight,
+      capacity: 4,
+    ),
+
     // ───────────── HOTELS ─────────────
     Service(
       id: 's-hotel-ala-archa-7',
