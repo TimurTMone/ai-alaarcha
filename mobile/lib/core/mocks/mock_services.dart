@@ -2,12 +2,34 @@ import '../models/service_model.dart';
 
 /// Images from alaarchapark.com
 abstract final class _Img {
+  // A-Frame real photos from alaarchapark.com
+  static const aframe01 = 'https://alaarchapark.com/_next/static/media/01-hero.c7f8f70f.jpg';
+  static const aframe02 = 'https://alaarchapark.com/_next/static/media/02-hero.8a8c6f87.jpg';
+  static const aframe03 = 'https://alaarchapark.com/_next/static/media/03-exterior.ba144427.jpg';
+  static const aframe05 = 'https://alaarchapark.com/_next/static/media/05-interior.581b48b1.jpg';
+  static const aframe06 = 'https://alaarchapark.com/_next/static/media/06-bedroom.21eae68c.jpg';
+  static const aframe07 = 'https://alaarchapark.com/_next/static/media/07.d18723cb.jpg';
+  static const aframe08 = 'https://alaarchapark.com/_next/static/media/08.f9f99b5d.jpg';
+  // Hotels
+  static const hotelResort1 = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
+  static const hotelResort2 = 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800';
+  static const ecoLodge1 = 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800';
+  static const ecoLodge2 = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800';
+  static const cabin1 = 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800';
+  // Services
+  static const restaurant1 = 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800';
+  static const restaurant2 = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800';
+  static const sauna1 = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800';
+  static const sauna2 = 'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800';
+  static const confHall1 = 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800';
+  static const confHall2 = 'https://images.unsplash.com/photo-1515165562835-c3b8c6d0b7b5?w=800';
+  // General
   static const mountains = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800';
   static const peaks = 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800';
   static const forest = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800';
-  static const hotel = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
-  static const cabin = 'https://images.unsplash.com/photo-1501556424050-d4816356e4f7?w=800';
+  static const bookingCabin = 'https://images.unsplash.com/photo-1501556424050-d4816356e4f7?w=800';
   static const parkScenery = 'https://alaarchapark.kg/wp-content/uploads/2022/08/1-1024x682.jpeg';
+  static const snowMountain = 'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?w=800';
 }
 
 /// Services scraped from https://alaarchapark.com/services
@@ -127,7 +149,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 21500, // ~$250 at ~86 KGS/USD
       unit: PriceUnit.perNight,
-      images: [_Img.hotel, _Img.cabin, _Img.mountains],
+      images: [_Img.ecoLodge1, _Img.ecoLodge2, _Img.mountains],
       capacity: 4,
     ),
 
@@ -148,7 +170,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 9000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1, _Img.hotelResort2],
       capacity: 2,
     ),
     Service(
@@ -167,7 +189,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 6000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1, _Img.hotelResort2],
       capacity: 2,
     ),
     Service(
@@ -186,7 +208,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 7000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1],
       capacity: 4,
     ),
     Service(
@@ -205,7 +227,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 4000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1],
       capacity: 2,
     ),
     Service(
@@ -224,7 +246,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 500,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1],
       phone: '+996 701 551 026',
     ),
     Service(
@@ -243,7 +265,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 4000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.ecoLodge1, _Img.ecoLodge2],
       capacity: 2,
     ),
     Service(
@@ -262,7 +284,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 7000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.cabin1, _Img.mountains],
       capacity: 2,
     ),
     Service(
@@ -281,7 +303,7 @@ abstract final class MockServices {
       category: ServiceCategory.hotel,
       priceKgs: 5000,
       unit: PriceUnit.perNight,
-      images: [_Img.hotel],
+      images: [_Img.cabin1, _Img.mountains],
       capacity: 2,
     ),
 
@@ -301,7 +323,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 2000,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1, _Img.confHall2],
       capacity: 30,
     ),
     Service(
@@ -319,7 +341,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 500,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1],
       capacity: 10,
     ),
     Service(
@@ -337,7 +359,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 2000,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1, _Img.confHall2],
       capacity: 30,
     ),
     Service(
@@ -355,7 +377,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 1000,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1],
       capacity: 10,
     ),
     Service(
@@ -392,7 +414,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 4000,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1, _Img.confHall2],
       capacity: 45,
     ),
     Service(
@@ -411,7 +433,7 @@ abstract final class MockServices {
       category: ServiceCategory.venue,
       priceKgs: 5000,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.confHall1, _Img.confHall2],
       capacity: 70,
     ),
 
@@ -431,7 +453,7 @@ abstract final class MockServices {
       category: ServiceCategory.recreation,
       priceKgs: 8850,
       unit: PriceUnit.perNight,
-      images: [_Img.cabin, _Img.forest],
+      images: [_Img.aframe07, _Img.aframe08, _Img.aframe01, _Img.aframe02, _Img.aframe03, _Img.aframe05, _Img.aframe06],
       capacity: 4,
     ),
     Service(
@@ -449,7 +471,7 @@ abstract final class MockServices {
       category: ServiceCategory.recreation,
       priceKgs: 2500,
       unit: PriceUnit.perNight,
-      images: [_Img.forest, _Img.cabin],
+      images: [_Img.forest, _Img.bookingCabin],
       capacity: 16,
     ),
     Service(
@@ -484,7 +506,7 @@ abstract final class MockServices {
       category: ServiceCategory.recreation,
       priceKgs: 6000,
       unit: PriceUnit.perNight,
-      images: [_Img.cabin, _Img.forest],
+      images: [_Img.bookingCabin, _Img.forest],
     ),
     Service(
       id: 's-rec-canopy',
@@ -519,7 +541,7 @@ abstract final class MockServices {
       category: ServiceCategory.recreation,
       priceKgs: 2000,
       unit: PriceUnit.perNight,
-      images: [_Img.forest],
+      images: [_Img.forest, _Img.bookingCabin],
       capacity: 16,
     ),
     Service(
@@ -537,7 +559,7 @@ abstract final class MockServices {
       category: ServiceCategory.recreation,
       priceKgs: 400,
       unit: PriceUnit.perTable,
-      images: [_Img.forest, _Img.mountains],
+      images: [_Img.cabin1, _Img.restaurant2],
     ),
     Service(
       id: 's-rec-alplager',
@@ -591,7 +613,7 @@ abstract final class MockServices {
       category: ServiceCategory.rental,
       priceKgs: 200,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.sauna1, _Img.sauna2],
     ),
     Service(
       id: 's-rent-horse',
@@ -625,7 +647,7 @@ abstract final class MockServices {
       category: ServiceCategory.rental,
       priceKgs: 100,
       unit: PriceUnit.perHour,
-      images: [_Img.mountains],
+      images: [_Img.snowMountain, _Img.mountains],
     ),
     Service(
       id: 's-rent-guide',
@@ -712,7 +734,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 250,
       unit: PriceUnit.flat,
-      images: [_Img.forest],
+      images: [_Img.restaurant2],
     ),
     Service(
       id: 's-extra-cauldron',
@@ -763,7 +785,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 2000,
       unit: PriceUnit.flat,
-      images: [_Img.hotel],
+      images: [_Img.restaurant2],
     ),
     Service(
       id: 's-extra-cooking',
@@ -780,7 +802,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 50,
       unit: PriceUnit.perItem,
-      images: [_Img.forest],
+      images: [_Img.restaurant2],
     ),
     Service(
       id: 's-extra-hearth',
@@ -814,7 +836,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 200,
       unit: PriceUnit.perDay,
-      images: [_Img.hotel],
+      images: [_Img.hotelResort1],
     ),
     Service(
       id: 's-extra-tent',
@@ -865,7 +887,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 200,
       unit: PriceUnit.flat,
-      images: [_Img.cabin],
+      images: [_Img.bookingCabin],
     ),
     Service(
       id: 's-extra-shower',
@@ -882,7 +904,7 @@ abstract final class MockServices {
       category: ServiceCategory.extra,
       priceKgs: 100,
       unit: PriceUnit.perHour,
-      images: [_Img.hotel],
+      images: [_Img.sauna1],
     ),
     Service(
       id: 's-extra-restroom',
