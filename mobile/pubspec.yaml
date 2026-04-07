@@ -1,7 +1,7 @@
 name: ala_archa
 description: "Ala-Archa National Park - AI-powered park super app"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.3
