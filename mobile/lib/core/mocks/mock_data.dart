@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/accommodation_model.dart';
 import '../models/pass_model.dart';
 import '../models/trail_model.dart';
@@ -124,6 +126,13 @@ abstract final class MockData {
       elevationGain: 350,
       estimatedTimeMinutes: 120,
       status: TrailStatus.open,
+      coordinates: [
+        GeoPoint(42.5623368, 74.4824238),
+        GeoPoint(42.5611886, 74.4831520),
+        GeoPoint(42.5600949, 74.4841966),
+        GeoPoint(42.5573085, 74.4870223),
+        GeoPoint(42.5558306, 74.4926035),
+      ],
     ),
     Trail(
       id: 't2',
@@ -142,6 +151,15 @@ abstract final class MockData {
       elevationGain: 800,
       estimatedTimeMinutes: 300,
       status: TrailStatus.open,
+      coordinates: [
+        GeoPoint(42.5623368, 74.4824238),
+        GeoPoint(42.5558306, 74.4926035),
+        GeoPoint(42.5568442, 74.4974890),
+        GeoPoint(42.5524132, 74.5077139),
+        GeoPoint(42.5473609, 74.5155618),
+        GeoPoint(42.5362052, 74.5258031),
+        GeoPoint(42.5349125, 74.5286827),
+      ],
     ),
     Trail(
       id: 't3',
@@ -160,6 +178,15 @@ abstract final class MockData {
       elevationGain: 1500,
       estimatedTimeMinutes: 480,
       status: TrailStatus.open,
+      coordinates: [
+        GeoPoint(42.5623368, 74.4824238),
+        GeoPoint(42.5558306, 74.4926035),
+        GeoPoint(42.5524132, 74.5077139),
+        GeoPoint(42.5559082, 74.5108683),
+        GeoPoint(42.5656517, 74.5255289),
+        GeoPoint(42.5671921, 74.5370194),
+        GeoPoint(42.5699063, 74.5474168),
+      ],
     ),
     Trail(
       id: 't4',
@@ -178,6 +205,16 @@ abstract final class MockData {
       elevationGain: 2000,
       estimatedTimeMinutes: 600,
       status: TrailStatus.caution,
+      coordinates: [
+        GeoPoint(42.5623368, 74.4824238),
+        GeoPoint(42.5558306, 74.4926035),
+        GeoPoint(42.5524132, 74.5077139),
+        GeoPoint(42.5473609, 74.5155618),
+        GeoPoint(42.5362052, 74.5258031),
+        GeoPoint(42.5349125, 74.5286827),
+        GeoPoint(42.5315226, 74.5316488),
+        GeoPoint(42.5219179, 74.5374581),
+      ],
     ),
     Trail(
       id: 't5',
@@ -196,6 +233,15 @@ abstract final class MockData {
       elevationGain: 100,
       estimatedTimeMinutes: 60,
       status: TrailStatus.open,
+      coordinates: [
+        GeoPoint(42.5623368, 74.4824238),
+        GeoPoint(42.5619082, 74.4835661),
+        GeoPoint(42.5615718, 74.4831581),
+        GeoPoint(42.5600949, 74.4831520),
+        GeoPoint(42.5593404, 74.4840175),
+        GeoPoint(42.5598311, 74.4830595),
+        GeoPoint(42.5623368, 74.4824238),
+      ],
     ),
   ];
 

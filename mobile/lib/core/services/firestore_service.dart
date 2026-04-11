@@ -10,7 +10,7 @@ class FirestoreService {
   final FirebaseFirestore _db;
 
   FirestoreService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   // ── Users ──────────────────────────────────────────────────────────
 
@@ -31,9 +31,10 @@ class FirestoreService {
   // ── Accommodations ────────────────────────────────────────────────
 
   Stream<List<Accommodation>> watchAccommodations() {
-    return _db.collection('accommodations').snapshots().map(
-          (snap) => snap.docs.map(Accommodation.fromFirestore).toList(),
-        );
+    return _db
+        .collection('accommodations')
+        .snapshots()
+        .map((snap) => snap.docs.map(Accommodation.fromFirestore).toList());
   }
 
   Future<Accommodation?> getAccommodation(String id) async {
@@ -53,6 +54,23 @@ class FirestoreService {
         .map((snap) => snap.docs.map(Booking.fromFirestore).toList());
   }
 
+  Future<void> createBooking(Booking booking) async {
+    await _db.collection('bookings').doc(booking.id).set(booking.toFirestore());
+  }
+
+  Future<void> updateBooking(
+    String bookingId, {
+    BookingStatus? status,
+    String? receiptUrl,
+    String? qrCode,
+  }) async {
+    final data = <String, Object>{};
+    if (status != null) data['status'] = status.name;
+    if (receiptUrl != null) data['receiptUrl'] = receiptUrl;
+    if (qrCode != null) data['qrCode'] = qrCode;
+    await _db.collection('bookings').doc(bookingId).update(data);
+  }
+
   // ── Passes ────────────────────────────────────────────────────────
 
   Stream<List<ParkPass>> watchUserPasses(String userId) {
@@ -64,12 +82,17 @@ class FirestoreService {
         .map((snap) => snap.docs.map(ParkPass.fromFirestore).toList());
   }
 
+  Future<void> createPass(ParkPass pass) async {
+    await _db.collection('passes').doc(pass.id).set(pass.toFirestore());
+  }
+
   // ── Trails ────────────────────────────────────────────────────────
 
   Stream<List<Trail>> watchTrails() {
-    return _db.collection('trails').snapshots().map(
-          (snap) => snap.docs.map(Trail.fromFirestore).toList(),
-        );
+    return _db
+        .collection('trails')
+        .snapshots()
+        .map((snap) => snap.docs.map(Trail.fromFirestore).toList());
   }
 
   Future<Trail?> getTrail(String id) async {
@@ -81,9 +104,10 @@ class FirestoreService {
   // ── Tours ─────────────────────────────────────────────────────────
 
   Stream<List<Tour>> watchTours() {
-    return _db.collection('tours').snapshots().map(
-          (snap) => snap.docs.map(Tour.fromFirestore).toList(),
-        );
+    return _db
+        .collection('tours')
+        .snapshots()
+        .map((snap) => snap.docs.map(Tour.fromFirestore).toList());
   }
 
   Future<Tour?> getTour(String id) async {

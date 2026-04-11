@@ -141,8 +141,10 @@ class PaymentInstructionsScreen extends ConsumerWidget {
               icon: const Icon(Icons.receipt_long),
               label: Text(
                 _uploadCtaLabel(locale),
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -180,8 +182,8 @@ class PaymentInstructionsScreen extends ConsumerWidget {
       }[l] ??
       'Загрузите чек';
   static String _refLabel(String l) =>
-      {'en': 'Reference', 'ru': 'Код брони', 'ky': 'Бронь коду'}[l] ??
-      'Код брони';
+      {'en': 'Payment code', 'ru': 'Код оплаты', 'ky': 'Төлөм коду'}[l] ??
+      'Код оплаты';
   static String _bankLabel(String l) =>
       {'en': 'Bank', 'ru': 'Банк', 'ky': 'Банк'}[l] ?? 'Банк';
   static String _accountLabel(String l) =>
@@ -194,9 +196,9 @@ class PaymentInstructionsScreen extends ConsumerWidget {
         'en':
             'Paste the reference code into the transfer memo — it helps us match your payment.',
         'ru':
-            'Вставьте код брони в назначение платежа — по нему мы найдём ваш перевод.',
+            'Вставьте код оплаты в назначение платежа — по нему мы найдём ваш перевод.',
         'ky':
-            'Бронь кодун которуу эскертмесине жазыңыз — төлөмүңүздү тез табабыз.',
+            'Төлөм кодун которуу эскертмесине жазыңыз — төлөмүңүздү тез табабыз.',
       }[l] ??
       '';
   static String _qrHintLabel(String l) =>
@@ -308,15 +310,12 @@ class _BankQrCard extends StatelessWidget {
       final file = File('${dir.path}/ala_archa_qr_$reference.png');
       await file.writeAsBytes(bytes);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Ala-Archa Park payment — $amount KGS, ref: $reference',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Ala-Archa Park payment — $amount KGS, ref: $reference');
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 

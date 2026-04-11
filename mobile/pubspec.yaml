@@ -41,7 +41,9 @@ dependencies:
   # mobile_scanner: ^6.0.5  # Re-add for staff gate-scanner app; needs static_framework config
 
   # Maps & Location
-  mapbox_maps_flutter: ^2.5.0
+  mapbox_maps_flutter: 2.21.0
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
   geolocator: ^13.0.2
 
   # Network
@@ -69,6 +71,9 @@ dev_dependencies:
   build_runner: ^2.4.15
   json_serializable: ^6.9.5
   json_annotation: ^4.9.0
+
+dependency_overrides:
+  path_provider_foundation: 2.4.2
 
 flutter_launcher_icons:
   android: true

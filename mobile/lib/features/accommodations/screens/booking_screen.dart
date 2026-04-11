@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_config.dart';
 import '../../../core/models/accommodation_model.dart';
+import '../../../core/models/booking_model.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/booking_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
-import '../../../core/widgets/branded_qr_card.dart';
 
-class BookingScreen extends StatefulWidget {
+class BookingScreen extends ConsumerStatefulWidget {
   final Accommodation accommodation;
 
   const BookingScreen({super.key, required this.accommodation});
 
   @override
-  State<BookingScreen> createState() => _BookingScreenState();
+  ConsumerState<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
+class _BookingScreenState extends ConsumerState<BookingScreen> {
   DateTime? _checkIn;
   DateTime? _checkOut;
   int _guests = 2;
+  bool _isSubmitting = false;
 
-  int get _nights =>
-      (_checkIn != null && _checkOut != null)
-          ? _checkOut!.difference(_checkIn!).inDays
-          : 0;
+  int get _nights => (_checkIn != null && _checkOut != null)
+      ? _checkOut!.difference(_checkIn!).inDays
+      : 0;
 
   double get _totalPrice => _nights * widget.accommodation.pricePerNight;
 
@@ -47,22 +52,48 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  void _confirm() {
-    final qrData =
-        'ALAARCHA-BOOKING-${widget.accommodation.id}-${DateTime.now().millisecondsSinceEpoch}';
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => _ConfirmationScreen(
-          accommodation: widget.accommodation,
-          checkIn: _checkIn!,
-          checkOut: _checkOut!,
-          guests: _guests,
-          totalPrice: _totalPrice,
-          qrData: qrData,
-        ),
-      ),
-    );
+  Future<void> _confirm() async {
+    if (!_canConfirm) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final now = DateTime.now();
+      final bookingId = 'stay-${now.microsecondsSinceEpoch}';
+      final userId =
+          ref.read(currentUserProvider).valueOrNull?.uid ?? 'dev-user';
+      final booking = Booking(
+        id: bookingId,
+        userId: userId,
+        code: _shortCode(bookingId),
+        subjectTitle: widget.accommodation.name,
+        subjectType: BookingSubject.accommodation,
+        subjectId: widget.accommodation.id,
+        quantity: _nights,
+        startsAt: _checkIn!,
+        endsAt: _checkOut!,
+        guests: _guests,
+        totalPriceKgs: _totalPrice.round(),
+        currency: widget.accommodation.currency,
+        status: BookingStatus.pendingPayment,
+        createdAt: now,
+      );
+
+      if (AppConfig.devMode || AppConfig.useBackendBookings) {
+        ref.read(devBookingsProvider.notifier).add(booking);
+      } else {
+        await ref.read(firestoreServiceProvider).createBooking(booking);
+      }
+
+      if (!mounted) return;
+      context.pushReplacement('/bookings/${booking.id}/pay');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
+
+  String _shortCode(String id) => id.length <= 6
+      ? id.toUpperCase()
+      : id.substring(id.length - 6).toUpperCase();
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +167,9 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                 ),
                 IconButton(
-                  onPressed:
-                      _guests > 1 ? () => setState(() => _guests--) : null,
+                  onPressed: _guests > 1
+                      ? () => setState(() => _guests--)
+                      : null,
                   icon: const Icon(Icons.remove_circle_outline),
                 ),
                 IconButton(
@@ -152,10 +184,7 @@ class _BookingScreenState extends State<BookingScreen> {
           const SizedBox(height: 6),
           Text(
             l.maxCapacity(widget.accommodation.capacity),
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textTertiary,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
           ),
           const SizedBox(height: 24),
           if (_nights > 0) ...[
@@ -199,8 +228,14 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         child: SafeArea(
           child: ElevatedButton(
-            onPressed: _canConfirm ? _confirm : null,
-            child: Text(l.confirmBooking),
+            onPressed: _canConfirm && !_isSubmitting ? _confirm : null,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(l.confirmBooking),
           ),
         ),
       ),
@@ -248,145 +283,6 @@ class _SummaryRow extends StatelessWidget {
       children: [
         Text(label, style: style),
         Text(value, style: style),
-      ],
-    );
-  }
-}
-
-class _ConfirmationScreen extends StatelessWidget {
-  final Accommodation accommodation;
-  final DateTime checkIn;
-  final DateTime checkOut;
-  final int guests;
-  final double totalPrice;
-  final String qrData;
-
-  const _ConfirmationScreen({
-    required this.accommodation,
-    required this.checkIn,
-    required this.checkOut,
-    required this.guests,
-    required this.totalPrice,
-    required this.qrData,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l10n;
-    final dateFormat = DateFormat('EEE, dd MMM');
-
-    return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 48),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.bookingConfirmed,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                accommodation.name,
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
-              ),
-              const SizedBox(height: 32),
-              BrandedQrCard(data: qrData, size: 180),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    _DetailRow(
-                      label: l.checkIn,
-                      value: dateFormat.format(checkIn),
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      label: l.checkOut,
-                      value: dateFormat.format(checkOut),
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(label: l.guests, value: '$guests'),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      label: l.total,
-                      value: '\$${totalPrice.toInt()}',
-                      bold: true,
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () =>
-                      Navigator.of(context).popUntil((r) => r.isFirst),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white38),
-                  ),
-                  child: Text(l.done),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
-
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: bold ? 18 : 14,
-            fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
       ],
     );
   }

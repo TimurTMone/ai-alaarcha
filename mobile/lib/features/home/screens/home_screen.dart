@@ -6,7 +6,6 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
 import '../widgets/weather_card.dart';
 import '../widgets/quick_actions.dart';
-import '../widgets/featured_places.dart';
 import '../widgets/announcements_rail.dart';
 import '../widgets/services_section.dart';
 
@@ -84,17 +83,8 @@ class HomeScreen extends ConsumerWidget {
                 child: QuickActions(
                   onBuyPass: () => context.push('/passes/buy'),
                   onMyPasses: () => context.push('/passes'),
-                  onGondola: () => context.push('/accommodations'),
                   onTours: () => context.push('/tours'),
                 ),
-              ),
-            ),
-
-            // Featured Places
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 28, 20, 0),
-                child: FeaturedPlaces(),
               ),
             ),
 

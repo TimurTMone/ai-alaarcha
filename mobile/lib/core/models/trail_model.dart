@@ -52,6 +52,10 @@ class Trail {
   String localizedDescription(String locale) =>
       description[locale] ?? description['ru'] ?? description['en'] ?? '';
 
+  bool get hasCoordinates => coordinates.isNotEmpty;
+
+  GeoPoint? get startPoint => hasCoordinates ? coordinates.first : null;
+
   String get estimatedTimeFormatted {
     final hours = estimatedTimeMinutes ~/ 60;
     final minutes = estimatedTimeMinutes % 60;

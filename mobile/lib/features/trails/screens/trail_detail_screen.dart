@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/trail_model.dart';
 import '../../../core/providers/trail_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
+import '../widgets/trail_map_widget.dart';
 
 class TrailDetailScreen extends ConsumerWidget {
   final String trailId;
@@ -13,11 +16,13 @@ class TrailDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final trail = ref.watch(trailProvider(trailId));
+    final trailItem = trail.valueOrNull;
 
     return Scaffold(
       body: trail.when(
         data: (item) {
           if (item == null) return Center(child: Text(l.noResults));
+          final locale = Localizations.localeOf(context).languageCode;
 
           return CustomScrollView(
             slivers: [
@@ -26,7 +31,7 @@ class TrailDetailScreen extends ConsumerWidget {
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(
-                    item.localizedName('ru'),
+                    item.localizedName(locale),
                     style: const TextStyle(fontSize: 16),
                   ),
                   background: Container(
@@ -78,7 +83,7 @@ class TrailDetailScreen extends ConsumerWidget {
 
                       // Description
                       Text(
-                        item.localizedDescription('ru'),
+                        item.localizedDescription(locale),
                         style: const TextStyle(
                           fontSize: 15,
                           color: AppColors.textSecondary,
@@ -88,33 +93,12 @@ class TrailDetailScreen extends ConsumerWidget {
 
                       const SizedBox(height: 24),
 
-                      // Map placeholder
-                      Container(
+                      SizedBox(
                         height: 200,
                         width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.map_outlined,
-                                size: 48,
-                                color: AppColors.textTertiary,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Mapbox Trail View',
-                                style: TextStyle(
-                                  color: AppColors.textTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: TrailMapWidget(
+                          trails: [item],
+                          compact: true,
                         ),
                       ),
 
@@ -148,7 +132,9 @@ class TrailDetailScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: trailItem == null
+                      ? null
+                      : () => _openNavigation(trailItem),
                   icon: const Icon(Icons.navigation),
                   label: Text(l.startNavigation),
                 ),
@@ -158,6 +144,15 @@ class TrailDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openNavigation(Trail item) async {
+    final startPoint = item.startPoint;
+    if (startPoint == null) return;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${startPoint.latitude},${startPoint.longitude}',
+    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }
 

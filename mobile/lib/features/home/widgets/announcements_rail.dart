@@ -1,22 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_config.dart';
 import '../../../core/models/announcement_model.dart';
-
-final announcementsProvider = StreamProvider<List<Announcement>>((ref) {
-  if (AppConfig.devMode) return Stream.value(const []);
-  return FirebaseFirestore.instance
-      .collection('announcements')
-      .orderBy('createdAt', descending: true)
-      .limit(10)
-      .snapshots()
-      .map((snap) => snap.docs
-          .map(Announcement.fromFirestore)
-          .where((a) => !a.isExpired)
-          .toList());
-});
+import '../../../core/providers/news_provider.dart';
 
 class AnnouncementsRail extends ConsumerWidget {
   const AnnouncementsRail({super.key});
@@ -88,61 +75,64 @@ class _AnnouncementCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          if (announcement.imageUrl != null)
-            Image.network(
-              announcement.imageUrl!,
-              width: 90,
-              height: 140,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+      child: InkWell(
+        onTap: () => context.push('/news/${announcement.id}'),
+        child: Row(
+          children: [
+            if (announcement.imageUrl != null)
+              Image.network(
+                announcement.imageUrl!,
                 width: 90,
-                color: AppColors.secondary.withValues(alpha: 0.12),
-                child: const Icon(Icons.image, color: AppColors.secondary),
+                height: 140,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  width: 90,
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  child: const Icon(Icons.image, color: AppColors.secondary),
+                ),
               ),
-            ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    announcement.localizedTitle(locale),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (announcement.localizedBody(locale).isNotEmpty)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      announcement.localizedBody(locale),
-                      maxLines: 3,
+                      announcement.localizedTitle(locale),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        height: 1.3,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                  const Spacer(),
-                  Text(
-                    _formatDate(announcement.createdAt),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textTertiary,
+                    const SizedBox(height: 4),
+                    if (announcement.localizedBody(locale).isNotEmpty)
+                      Text(
+                        announcement.localizedBody(locale),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.3,
+                        ),
+                      ),
+                    const Spacer(),
+                    Text(
+                      _formatDate(announcement.createdAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textTertiary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

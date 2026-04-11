@@ -225,6 +225,9 @@ class _BookingCard extends ConsumerWidget {
   }
 
   String _subjectTitle(WidgetRef ref) {
+    if (booking.subjectTitle?.isNotEmpty == true) {
+      return booking.subjectTitle!;
+    }
     if (booking.subjectType == BookingSubject.service) {
       final service = ref.watch(serviceByIdProvider(booking.subjectId));
       return service?.localizedName(locale) ?? booking.subjectId;
@@ -272,7 +275,12 @@ class _StatusChip extends StatelessWidget {
         return (
           AppColors.warning.withValues(alpha: 0.15),
           AppColors.warning,
-          _label(l, 'PAYMENT', 'ОПЛАТА', 'ТӨЛӨМ'),
+          _label(
+            l,
+            'REQUEST',
+            'ЗАЯВКА',
+            'СУРАМ',
+          ),
         );
       case BookingStatus.pendingVerification:
         return (

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../core/models/booking_model.dart';
@@ -30,7 +32,7 @@ class BookingDetailScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _statusBanner(booking, locale),
+          _statusBanner(context, booking, locale),
           const SizedBox(height: 24),
           _subjectCard(ref, booking, locale),
           const SizedBox(height: 16),
@@ -49,20 +51,48 @@ class BookingDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _statusBanner(Booking b, String locale) {
+  Widget _statusBanner(BuildContext context, Booking b, String locale) {
     switch (b.status) {
       case BookingStatus.pendingPayment:
         return _banner(
           icon: Icons.payment,
           color: AppColors.warning,
-          title: _titleStr(locale, 'Awaiting payment', 'Ожидает оплаты',
-              'Төлөмдү күтүүдө'),
+          title: b.telegramBotUrl != null
+              ? _titleStr(
+                  locale,
+                  'Request sent',
+                  'Заявка отправлена',
+                  'Сурам жөнөтүлдү',
+                )
+              : _titleStr(
+                  locale,
+                  'Awaiting payment',
+                  'Ожидает оплаты',
+                  'Төлөмдү күтүүдө',
+                ),
           body: _titleStr(
             locale,
-            'Complete the bank transfer and upload your receipt.',
-            'Сделайте перевод и загрузите чек.',
-            'Которуу жасаңыз жана чекти жүктөңүз.',
+            b.telegramBotUrl != null
+                ? 'We sent your booking request to the backend. Continue in Telegram if needed.'
+                : 'Complete the bank transfer and upload your receipt.',
+            b.telegramBotUrl != null
+                ? 'Заявка уже отправлена в backend. При необходимости продолжите в Telegram.'
+                : 'Сделайте перевод и загрузите чек.',
+            b.telegramBotUrl != null
+                ? 'Сурам backendке жөнөтүлдү. Керек болсо Telegram аркылуу улантыңыз.'
+                : 'Которуу жасаңыз жана чекти жүктөңүз.',
           ),
+          ctaLabel: b.telegramBotUrl != null
+              ? _titleStr(
+                  locale,
+                  'Open Telegram',
+                  'Открыть Telegram',
+                  'Telegram ачуу',
+                )
+              : _titleStr(locale, 'Pay', 'Оплатить', 'Төлөө'),
+          onTap: b.telegramBotUrl != null
+              ? () => _openExternal(b.telegramBotUrl!)
+              : () => context.push('/bookings/${b.id}/pay'),
         );
       case BookingStatus.pendingVerification:
         return _banner(
@@ -112,7 +142,8 @@ class BookingDetailScreen extends ConsumerWidget {
             'Бронь отклонена',
             'Брон четке кагылды',
           ),
-          body: b.rejectionReason ??
+          body:
+              b.rejectionReason ??
               _titleStr(
                 locale,
                 'Please contact support.',
@@ -155,8 +186,12 @@ class BookingDetailScreen extends ConsumerWidget {
       child: Column(
         children: [
           Text(
-            _titleStr(locale, 'SHOW AT ENTRANCE', 'ПОКАЖИТЕ ПРИ ВХОДЕ',
-                'КИРҮҮДӨ КӨРСӨТҮҢҮЗ'),
+            _titleStr(
+              locale,
+              'SHOW AT ENTRANCE',
+              'ПОКАЖИТЕ ПРИ ВХОДЕ',
+              'КИРҮҮДӨ КӨРСӨТҮҢҮЗ',
+            ),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -188,6 +223,8 @@ class BookingDetailScreen extends ConsumerWidget {
     required String title,
     required String body,
     bool showSpinner = false,
+    String? ctaLabel,
+    VoidCallback? onTap,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -203,10 +240,7 @@ class BookingDetailScreen extends ConsumerWidget {
             SizedBox(
               width: 28,
               height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: color,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 3, color: color),
             )
           else
             Icon(icon, color: color, size: 28),
@@ -237,13 +271,26 @@ class BookingDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (ctaLabel != null && onTap != null) ...[
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(ctaLabel),
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _subjectCard(WidgetRef ref, Booking b, String locale) {
-    String title = b.subjectId;
+    String title = b.subjectTitle?.isNotEmpty == true
+        ? b.subjectTitle!
+        : b.subjectId;
     String? subtitle;
     if (b.subjectType == BookingSubject.service) {
       final s = ref.watch(serviceByIdProvider(b.subjectId));
@@ -289,11 +336,16 @@ class BookingDetailScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _row(_titleStr(locale, 'Reference', 'Код брони', 'Бронь коду'),
-                b.shortRef, monospace: true),
+            _row(
+              _titleStr(locale, 'Reference', 'Код брони', 'Бронь коду'),
+              b.shortRef,
+              monospace: true,
+            ),
             const Divider(height: 20),
-            _row(_titleStr(locale, 'Quantity', 'Количество', 'Саны'),
-                '${b.quantity} $unitLabel'.trim()),
+            _row(
+              _titleStr(locale, 'Quantity', 'Количество', 'Саны'),
+              '${b.quantity} $unitLabel'.trim(),
+            ),
             const Divider(height: 20),
             _row(
               _titleStr(locale, 'Total', 'Итого', 'Жыйынтыгы'),
@@ -323,12 +375,19 @@ class BookingDetailScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.psychology_outlined,
-                    color: AppColors.primary, size: 18),
+                const Icon(
+                  Icons.psychology_outlined,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  _titleStr(locale, 'AI verification', 'AI проверка',
-                      'AI текшерүү'),
+                  _titleStr(
+                    locale,
+                    'AI verification',
+                    'AI проверка',
+                    'AI текшерүү',
+                  ),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -351,7 +410,9 @@ class BookingDetailScreen extends ConsumerWidget {
               Text(
                 'Extracted: ${v.extractedAmountKgs} KGS',
                 style: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
             if (v.notes != null) ...[
@@ -359,9 +420,10 @@ class BookingDetailScreen extends ConsumerWidget {
               Text(
                 v.notes!,
                 style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textTertiary,
-                    fontStyle: FontStyle.italic),
+                  fontSize: 12,
+                  color: AppColors.textTertiary,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
           ],
@@ -370,16 +432,17 @@ class BookingDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _row(String label, String value,
-      {bool bold = false, bool monospace = false}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool bold = false,
+    bool monospace = false,
+  }) {
     return Row(
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const Spacer(),
         Text(
@@ -403,6 +466,12 @@ class BookingDetailScreen extends ConsumerWidget {
 
   static String _formatDate(DateTime d) =>
       '${d.day}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+  Future<void> _openExternal(String value) async {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
   static String _unitText(PriceUnit u, String l) {
     const m = {
@@ -430,15 +499,18 @@ class _DevSimulateButtons extends ConsumerWidget {
       if (booking == null) return;
       final verification = AiVerification(
         score: approve ? 0.95 : 0.55,
-        extractedAmountKgs:
-            approve ? booking.totalPriceKgs : booking.totalPriceKgs - 200,
+        extractedAmountKgs: approve
+            ? booking.totalPriceKgs
+            : booking.totalPriceKgs - 200,
         extractedDate: DateTime.now(),
         extractedReference: approve ? booking.shortRef : 'unclear',
         notes: approve
             ? 'all checks passed'
             : 'amount mismatch; memo missing ref',
       );
-      ref.read(devBookingsProvider.notifier).update(
+      ref
+          .read(devBookingsProvider.notifier)
+          .update(
             bookingId,
             (b) => b.copyWith(
               status: approve
@@ -450,6 +522,17 @@ class _DevSimulateButtons extends ConsumerWidget {
               aiVerification: verification,
             ),
           );
+      if (approve && booking.subjectType == BookingSubject.pass) {
+        ref
+            .read(devPassesProvider.notifier)
+            .issueFromBooking(
+              booking.copyWith(
+                status: BookingStatus.approved,
+                qrCode: 'ALAARCHA.${bookingId.toUpperCase()}.DEVQR',
+                aiVerification: verification,
+              ),
+            );
+      }
     }
 
     return Container(
@@ -474,10 +557,7 @@ class _DevSimulateButtons extends ConsumerWidget {
           const SizedBox(height: 4),
           const Text(
             'Simulate AI verification (real Cloud Function runs in prod)',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           Row(

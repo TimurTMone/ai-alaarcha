@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_config.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/booking_model.dart';
 import '../../../core/models/pass_model.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/booking_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
 
 class BuyPassScreen extends ConsumerStatefulWidget {
@@ -30,8 +35,114 @@ class _BuyPassScreenState extends ConsumerState<BuyPassScreen> {
     (PassType.annual, PassCategory.student): 1400,
   };
 
-  int get _currentPrice =>
-      _prices[(_selectedType, _selectedCategory)] ?? 0;
+  int get _currentPrice => _prices[(_selectedType, _selectedCategory)] ?? 0;
+
+  Future<void> _buyPass() async {
+    final now = DateTime.now();
+    final bookingId = 'pass-${now.microsecondsSinceEpoch}';
+    final validTo = _validTo(_selectedType, now);
+    final locale = Localizations.localeOf(context).languageCode;
+    final userId = ref.read(currentUserProvider).valueOrNull?.uid ?? 'dev-user';
+    final booking = Booking(
+      id: bookingId,
+      userId: userId,
+      code: _shortCode(bookingId),
+      subjectTitle: _passTitle(locale),
+      subjectType: BookingSubject.pass,
+      subjectId: 'pass:${_selectedType.name}:${_selectedCategory.name}',
+      quantity: 1,
+      startsAt: now,
+      endsAt: validTo,
+      totalPriceKgs: _currentPrice,
+      status: BookingStatus.pendingPayment,
+      createdAt: now,
+    );
+
+    if (AppConfig.devMode || AppConfig.useBackendBookings) {
+      ref.read(devBookingsProvider.notifier).add(booking);
+    } else {
+      await ref.read(firestoreServiceProvider).createBooking(booking);
+    }
+
+    if (!mounted) return;
+    context.push('/bookings/${booking.id}/pay');
+  }
+
+  DateTime _validTo(PassType type, DateTime from) {
+    switch (type) {
+      case PassType.day:
+        return from.add(const Duration(days: 1));
+      case PassType.multiDay:
+        return from.add(const Duration(days: 3));
+      case PassType.annual:
+        return DateTime(from.year + 1, from.month, from.day);
+    }
+  }
+
+  String _shortCode(String id) => id.length <= 6
+      ? id.toUpperCase()
+      : id.substring(id.length - 6).toUpperCase();
+
+  String _passTitle(String locale) {
+    final typeLabel = switch (_selectedType) {
+      PassType.day => _pickLabel(
+        locale,
+        en: 'Day pass',
+        ru: 'Дневной пропуск',
+        ky: 'Күндүк пропуск',
+      ),
+      PassType.multiDay => _pickLabel(
+        locale,
+        en: 'Multi-day pass',
+        ru: 'Многодневный пропуск',
+        ky: 'Көп күндүк пропуск',
+      ),
+      PassType.annual => _pickLabel(
+        locale,
+        en: 'Annual pass',
+        ru: 'Годовой пропуск',
+        ky: 'Жылдык пропуск',
+      ),
+    };
+    final categoryLabel = switch (_selectedCategory) {
+      PassCategory.citizen => _pickLabel(
+        locale,
+        en: 'Citizen',
+        ru: 'Гражданин',
+        ky: 'Жаран',
+      ),
+      PassCategory.tourist => _pickLabel(
+        locale,
+        en: 'Tourist',
+        ru: 'Турист',
+        ky: 'Турист',
+      ),
+      PassCategory.child => _pickLabel(
+        locale,
+        en: 'Child',
+        ru: 'Ребёнок',
+        ky: 'Бала',
+      ),
+      PassCategory.student => _pickLabel(
+        locale,
+        en: 'Student',
+        ru: 'Студент',
+        ky: 'Студент',
+      ),
+    };
+    return '$typeLabel · $categoryLabel';
+  }
+
+  String _pickLabel(
+    String locale, {
+    required String en,
+    required String ru,
+    required String ky,
+  }) => locale == 'en'
+      ? en
+      : locale == 'ky'
+      ? ky
+      : ru;
 
   @override
   Widget build(BuildContext context) {
@@ -47,18 +158,20 @@ class _BuyPassScreenState extends ConsumerState<BuyPassScreen> {
             // Pass type selector
             Text(
               l.buyPass,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             SegmentedButton<PassType>(
               segments: [
                 ButtonSegment(value: PassType.day, label: Text(l.dayPass)),
                 ButtonSegment(
-                    value: PassType.multiDay, label: Text(l.multiDayPass)),
-                ButtonSegment(value: PassType.annual, label: Text(l.annualPass)),
+                  value: PassType.multiDay,
+                  label: Text(l.multiDayPass),
+                ),
+                ButtonSegment(
+                  value: PassType.annual,
+                  label: Text(l.annualPass),
+                ),
               ],
               selected: {_selectedType},
               onSelectionChanged: (v) =>
@@ -115,8 +228,9 @@ class _BuyPassScreenState extends ConsumerState<BuyPassScreen> {
                           label,
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight:
-                                selected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                           ),
                         ),
                         const Spacer(),
@@ -171,9 +285,7 @@ class _BuyPassScreenState extends ConsumerState<BuyPassScreen> {
                   const SizedBox(width: 20),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Payment flow
-                      },
+                      onPressed: _currentPrice > 0 ? _buyPass : null,
                       child: Text(l.buyPass),
                     ),
                   ),

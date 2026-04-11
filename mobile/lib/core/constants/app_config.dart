@@ -3,6 +3,10 @@ abstract final class AppConfig {
   /// When true: bypasses Firebase auth, uses in-memory mock data, and tolerates
   /// Firebase init failures. Set to false before shipping to TestFlight.
   static const bool devMode = true;
+  static const bool useBackendContent = true;
+  static const bool useBackendBookings = true;
+  static const String backendBaseUrl =
+      'https://alarcha-backend-06ce07320e64.herokuapp.com/api';
 
   /// Bank details shown on the payment instructions screen. Users transfer to
   /// this account and paste the booking shortRef into the memo. Replace with

@@ -5,10 +5,9 @@ import 'core/constants/app_config.dart';
 import 'core/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
+import 'features/news/screens/news_detail_screen.dart';
 import 'features/passes/screens/buy_pass_screen.dart';
 import 'features/passes/screens/my_passes_screen.dart';
-import 'features/accommodations/screens/accommodations_list_screen.dart';
-import 'features/accommodations/screens/accommodation_detail_screen.dart';
 import 'features/ai_concierge/screens/chat_screen.dart';
 import 'features/trails/screens/trails_map_screen.dart';
 import 'features/trails/screens/trail_detail_screen.dart';
@@ -69,18 +68,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: '/accommodations',
-            builder: (context, state) => const AccommodationsListScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => AccommodationDetailScreen(
-                  accommodationId: state.pathParameters['id']!,
-                ),
-              ),
-            ],
-          ),
-          GoRoute(
             path: '/bookings',
             builder: (context, state) => const MyBookingsScreen(),
           ),
@@ -118,6 +105,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ServiceBookingScreen(serviceId: state.pathParameters['id']!),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/news/:id',
+        builder: (context, state) =>
+            NewsDetailScreen(newsId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/bookings/:id',

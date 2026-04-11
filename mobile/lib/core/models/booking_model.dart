@@ -50,6 +50,9 @@ class AiVerification {
 class Booking {
   final String id;
   final String userId;
+  final String? code;
+  final String? subjectTitle;
+  final String? telegramBotUrl;
 
   // Discriminator
   final BookingSubject subjectType;
@@ -83,6 +86,9 @@ class Booking {
   const Booking({
     required this.id,
     required this.userId,
+    this.code,
+    this.subjectTitle,
+    this.telegramBotUrl,
     required this.subjectType,
     required this.subjectId,
     this.unit,
@@ -104,7 +110,9 @@ class Booking {
   });
 
   /// Short human-readable reference users include in their bank memo.
-  String get shortRef => id.length >= 6
+  String get shortRef => code != null && code!.isNotEmpty
+      ? code!
+      : id.length >= 6
       ? id.substring(0, 6).toUpperCase()
       : id.toUpperCase().padRight(6, '0');
 
@@ -130,6 +138,9 @@ class Booking {
       Booking(
         id: id,
         userId: userId,
+        code: code,
+        subjectTitle: subjectTitle,
+        telegramBotUrl: telegramBotUrl,
         subjectType: subjectType,
         subjectId: subjectId,
         unit: unit,
@@ -155,6 +166,9 @@ class Booking {
     return Booking(
       id: doc.id,
       userId: data['userId'] as String,
+      code: data['code'] as String?,
+      subjectTitle: data['subjectTitle'] as String?,
+      telegramBotUrl: data['telegramBotUrl'] as String?,
       subjectType: BookingSubject.values.byName(
         data['subjectType'] as String? ?? 'accommodation',
       ),
@@ -189,8 +203,49 @@ class Booking {
     );
   }
 
+  factory Booking.fromApi(
+    Map<String, dynamic> json, {
+    Service? fallbackService,
+    String userId = 'backend-user',
+  }) {
+    final service = json['service'] as Map?;
+    final serviceId =
+        json['service_id']?.toString() ?? service?['id']?.toString() ?? '';
+    final serviceName = json['service_name']?.toString() ??
+        service?['name']?.toString() ??
+        fallbackService?.name['ru'];
+    final checkIn = DateTime.tryParse(json['check_in']?.toString() ?? '');
+    final checkOut = DateTime.tryParse(json['check_out']?.toString() ?? '');
+    final totalPrice = json['total_price'];
+
+    return Booking(
+      id: json['id'].toString(),
+      userId: userId,
+      code: json['code']?.toString(),
+      subjectTitle: serviceName,
+      telegramBotUrl: json['telegram_bot_url']?.toString(),
+      subjectType: BookingSubject.service,
+      subjectId: serviceId,
+      unit: fallbackService?.unit,
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+      startsAt: checkIn,
+      endsAt: checkOut,
+      guests: (json['guests'] as num?)?.toInt() ?? 1,
+      totalPriceKgs: totalPrice == null
+          ? (fallbackService?.priceKgs ?? 0)
+          : (double.tryParse(totalPrice.toString()) ?? 0).round(),
+      currency: json['currency']?.toString() ?? fallbackService?.currency ?? 'KGS',
+      status: _statusFromApi(json['status']?.toString()),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toFirestore() => {
         'userId': userId,
+        if (code != null) 'code': code,
+        if (subjectTitle != null) 'subjectTitle': subjectTitle,
+        if (telegramBotUrl != null) 'telegramBotUrl': telegramBotUrl,
         'subjectType': subjectType.name,
         'subjectId': subjectId,
         if (unit != null) 'unit': unit!.name,
@@ -211,4 +266,16 @@ class Booking {
         if (rejectionReason != null) 'rejectionReason': rejectionReason,
         'createdAt': Timestamp.fromDate(createdAt),
       };
+
+  static BookingStatus _statusFromApi(String? raw) {
+    switch (raw) {
+      case 'confirmed':
+        return BookingStatus.approved;
+      case 'cancelled':
+        return BookingStatus.cancelled;
+      case 'pending':
+      default:
+        return BookingStatus.pendingPayment;
+    }
+  }
 }

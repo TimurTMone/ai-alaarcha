@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../core/models/booking_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/booking_provider.dart';
 
 class ReceiptUploadScreen extends ConsumerStatefulWidget {
@@ -75,41 +76,59 @@ class _ReceiptUploadScreenState extends ConsumerState<ReceiptUploadScreen> {
         }
         downloadUrl = 'devmode://local/${_selectedFile!.path.split('/').last}';
       } else {
-        final storageRef = FirebaseStorage.instance
-            .ref('receipts/${booking.userId}/${booking.id}.jpg');
+        final storageRef = FirebaseStorage.instance.ref(
+          'receipts/${booking.userId}/${booking.id}.jpg',
+        );
         final task = storageRef.putFile(
           _selectedFile!,
           SettableMetadata(contentType: 'image/jpeg'),
         );
         task.snapshotEvents.listen((snap) {
           if (!mounted) return;
-          setState(() =>
-              _progress = snap.bytesTransferred / snap.totalBytes.clamp(1, 1 << 30));
+          setState(
+            () => _progress =
+                snap.bytesTransferred / snap.totalBytes.clamp(1, 1 << 30),
+          );
         });
         final snap = await task;
         downloadUrl = await snap.ref.getDownloadURL();
       }
 
-      // Update the booking in devMode store.
-      ref.read(devBookingsProvider.notifier).update(
-            booking.id,
-            (b) => b.copyWith(
+      if (AppConfig.devMode || AppConfig.useBackendBookings) {
+        ref
+            .read(devBookingsProvider.notifier)
+            .update(
+              booking.id,
+              (b) => b.copyWith(
+                status: BookingStatus.pendingVerification,
+                receiptUrl: downloadUrl,
+              ),
+            );
+      } else {
+        await ref
+            .read(firestoreServiceProvider)
+            .updateBooking(
+              booking.id,
               status: BookingStatus.pendingVerification,
               receiptUrl: downloadUrl,
-            ),
-          );
+            );
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_successLabel(Localizations.localeOf(context).languageCode))),
+        SnackBar(
+          content: Text(
+            _successLabel(Localizations.localeOf(context).languageCode),
+          ),
+        ),
       );
-      context.go('/');
+      context.go('/bookings/${booking.id}');
     } catch (e) {
       if (!mounted) return;
       setState(() => _uploading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
     }
   }
 
@@ -259,10 +278,18 @@ class _ReceiptUploadScreenState extends ConsumerState<ReceiptUploadScreen> {
       {'en': 'Upload Receipt', 'ru': 'Загрузка чека', 'ky': 'Чек жүктөө'}[l] ??
       'Загрузка чека';
   static String _takePhotoLabel(String l) =>
-      {'en': 'Take a photo', 'ru': 'Сфотографировать', 'ky': 'Сүрөткө тартуу'}[l] ??
+      {
+        'en': 'Take a photo',
+        'ru': 'Сфотографировать',
+        'ky': 'Сүрөткө тартуу',
+      }[l] ??
       'Сфотографировать';
   static String _galleryLabel(String l) =>
-      {'en': 'Choose from gallery', 'ru': 'Выбрать из галереи', 'ky': 'Галереядан тандоо'}[l] ??
+      {
+        'en': 'Choose from gallery',
+        'ru': 'Выбрать из галереи',
+        'ky': 'Галереядан тандоо',
+      }[l] ??
       'Выбрать из галереи';
   static String _retakeLabel(String l) =>
       {'en': 'Retake', 'ru': 'Заново', 'ky': 'Кайра'}[l] ?? 'Заново';
@@ -281,10 +308,8 @@ class _ReceiptUploadScreenState extends ConsumerState<ReceiptUploadScreen> {
       {
         'en':
             'Make sure the amount, date, and reference code are clearly visible on the receipt.',
-        'ru':
-            'Убедитесь, что сумма, дата и код брони чётко видны на чеке.',
-        'ky':
-            'Чекте сумма, күн жана бронь коду так көрүнүп турсун.',
+        'ru': 'Убедитесь, что сумма, дата и код оплаты чётко видны на чеке.',
+        'ky': 'Чекте сумма, күн жана төлөм коду так көрүнүп турсун.',
       }[l] ??
       '';
 }
@@ -332,10 +357,7 @@ class _PickerTile extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textTertiary,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
           ],
         ),
       ),

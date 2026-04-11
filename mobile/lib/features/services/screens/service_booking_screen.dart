@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/date_range.dart';
 import '../../../core/mocks/mock_data.dart';
-import '../../../core/models/booking_model.dart';
 import '../../../core/models/service_model.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/booking_provider.dart';
 import '../../../core/providers/service_provider.dart';
 
@@ -19,10 +21,25 @@ class ServiceBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
+  final _nameController = TextEditingController();
+  final _contactController = TextEditingController();
+  final _noteController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
   int _quantity = 1;
+  int _guests = 1;
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  String _contactChannel = 'whatsapp';
+  bool _seededUserFields = false;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _contactController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDate({
     required bool isStart,
@@ -94,34 +111,71 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     return false;
   }
 
-  void _submit(Service service) {
+  Future<void> _submit(Service service) async {
+    if (_nameController.text.trim().isEmpty ||
+        _contactController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _contactValidationLabel(
+              Localizations.localeOf(context).languageCode,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final checkIn = _startDate ?? DateTime.now();
+    final checkOut = service.unit == PriceUnit.perNight
+        ? (_endDate ?? checkIn)
+        : (checkIn.add(const Duration(days: 1)));
     final qty = _computeQuantityForTotal(service.unit);
     final total = service.priceKgs * qty;
-    final now = DateTime.now();
-    final id = 'bk-${now.millisecondsSinceEpoch.toRadixString(36)}';
+    setState(() => _isSubmitting = true);
+    try {
+      final booking = await ref
+          .read(backendApiProvider)
+          .createBooking(
+            service: service,
+            checkIn: checkIn,
+            checkOut: checkOut,
+            guests: _guests,
+            quantity: qty > 0 ? qty : 1,
+            customerName: _nameController.text.trim(),
+            contactChannel: _contactChannel,
+            contactValue: _contactController.text.trim(),
+            note: _noteController.text,
+            totalPriceKgs: total > 0 ? total : null,
+          );
 
-    final booking = Booking(
-      id: id,
-      userId: MockData.devUserId,
-      subjectType: BookingSubject.service,
-      subjectId: service.id,
-      unit: service.unit,
-      quantity: qty,
-      startsAt: _startDate,
-      endsAt: service.unit == PriceUnit.perNight ? _endDate : null,
-      totalPriceKgs: total,
-      status: BookingStatus.pendingPayment,
-      createdAt: now,
-    );
+      ref
+          .read(devBookingsProvider.notifier)
+          .add(booking.copyWith(status: booking.status));
 
-    ref.read(devBookingsProvider.notifier).add(booking);
-    context.push('/bookings/$id/pay');
+      if (!mounted) return;
+      context.push('/bookings/${booking.id}/pay');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _submitErrorLabel(Localizations.localeOf(context).languageCode),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).languageCode;
     final service = ref.watch(serviceByIdProvider(widget.serviceId));
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
+
+    _seedFromUser(currentUser);
 
     if (service == null) {
       return Scaffold(
@@ -239,6 +293,8 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
 
           // Form fields
           ..._buildFormFields(service, locale, blockedDates),
+          const SizedBox(height: 16),
+          _contactSection(locale),
 
           if (conflict) ...[
             const SizedBox(height: 12),
@@ -247,7 +303,9 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -302,18 +360,29 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed:
-                  _canSubmit(service.unit) && !conflict
-                      ? () => _submit(service)
-                      : null,
+              onPressed: _canSubmit(service.unit) && !conflict && !_isSubmitting
+                  ? () => _submit(service)
+                  : null,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: AppColors.primary,
               ),
-              child: Text(
-                _continueLabel(locale),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      _continueLabel(locale),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -340,6 +409,8 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
             date: _endDate,
             onTap: () => _pickDate(isStart: false),
           ),
+          const SizedBox(height: 16),
+          _guestsStepper(locale),
         ];
       case PriceUnit.perVehicle:
       case PriceUnit.flat:
@@ -361,8 +432,75 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
           ),
           const SizedBox(height: 16),
           _quantityStepper(service.unit, locale),
+          const SizedBox(height: 16),
+          _guestsStepper(locale),
         ];
     }
+  }
+
+  Widget _contactSection(String locale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _contactTitle(locale),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _nameController,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: _nameLabel(locale),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: _contactChannel,
+          decoration: InputDecoration(
+            labelText: _channelLabel(locale),
+            border: const OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem(
+              value: 'whatsapp',
+              child: Text(_whatsAppLabel(locale)),
+            ),
+            DropdownMenuItem(
+              value: 'telegram',
+              child: Text(_telegramLabel(locale)),
+            ),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _contactChannel = value);
+          },
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _contactController,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            labelText: _contactValueLabel(locale),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _noteController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: _noteLabel(locale),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _dateTile({
@@ -381,7 +519,11 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+            const Icon(
+              Icons.calendar_today,
+              size: 20,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 12),
             Text(label, style: const TextStyle(fontSize: 14)),
             const Spacer(),
@@ -424,10 +566,7 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
             child: Text(
               '$_quantity',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ),
           IconButton.outlined(
@@ -439,15 +578,63 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     );
   }
 
+  Widget _guestsStepper(String locale) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Text(_guestsLabel(locale), style: const TextStyle(fontSize: 14)),
+          const Spacer(),
+          IconButton.outlined(
+            onPressed: _guests > 1 ? () => setState(() => _guests--) : null,
+            icon: const Icon(Icons.remove),
+          ),
+          SizedBox(
+            width: 40,
+            child: Text(
+              '$_guests',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+          ),
+          IconButton.outlined(
+            onPressed: () => setState(() => _guests++),
+            icon: const Icon(Icons.add),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _seedFromUser(AppUser? user) {
+    if (_seededUserFields) return;
+    final source = user ?? MockData.devUser;
+    _nameController.text = source.displayName ?? '';
+    _contactController.text = source.phone ?? source.email ?? '';
+    _contactChannel = (source.phone?.isNotEmpty ?? false)
+        ? 'whatsapp'
+        : 'telegram';
+    _seededUserFields = true;
+  }
+
   // ── i18n labels ────────────────────────────────────────────────────
 
   static String _bookTitle(String l) =>
-      {'en': 'Book', 'ru': 'Бронирование', 'ky': 'Брондоо'}[l] ?? 'Бронирование';
+      {'en': 'Book', 'ru': 'Бронирование', 'ky': 'Брондоо'}[l] ??
+      'Бронирование';
   static String _totalLabel(String l) =>
       {'en': 'Total', 'ru': 'Итого', 'ky': 'Жыйынтыгы'}[l] ?? 'Итого';
   static String _continueLabel(String l) =>
-      {'en': 'Continue to payment', 'ru': 'К оплате', 'ky': 'Төлөмгө'}[l] ??
-      'К оплате';
+      {
+        'en': 'Send booking request',
+        'ru': 'Отправить заявку',
+        'ky': 'Сурам жөнөтүү',
+      }[l] ??
+      'Отправить заявку';
   static String _checkInLabel(String l) =>
       {'en': 'Check-in', 'ru': 'Заезд', 'ky': 'Келүү'}[l] ?? 'Заезд';
   static String _checkOutLabel(String l) =>
@@ -456,17 +643,60 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
       {'en': 'Date', 'ru': 'Дата', 'ky': 'Күн'}[l] ?? 'Дата';
   static String _flatConfirmLabel(String l) =>
       {
-        'en': 'Fixed-price service. Continue to payment to book.',
-        'ru': 'Услуга с фиксированной ценой. Перейдите к оплате.',
-        'ky': 'Белгиленген баалуу кызмат. Төлөмгө өтүңүз.',
+        'en': 'Fixed-price service. Send a request to confirm the booking.',
+        'ru':
+            'Услуга с фиксированной ценой. Отправьте заявку для подтверждения.',
+        'ky': 'Белгиленген баалуу кызмат. Ырастоо үчүн сурам жөнөтүңүз.',
       }[l] ??
       'Услуга с фиксированной ценой.';
-  static String _availabilityTitle(String l) =>
+  static String _contactTitle(String l) =>
       {
-        'en': 'Availability',
-        'ru': 'Доступность',
-        'ky': 'Жеткиликтүүлүк',
+        'en': 'Your contact details',
+        'ru': 'Ваши контакты',
+        'ky': 'Байланыш маалыматыңыз',
       }[l] ??
+      'Ваши контакты';
+  static String _nameLabel(String l) =>
+      {'en': 'Name', 'ru': 'Имя', 'ky': 'Аты'}[l] ?? 'Имя';
+  static String _channelLabel(String l) =>
+      {
+        'en': 'Preferred contact channel',
+        'ru': 'Удобный канал связи',
+        'ky': 'Байланыш каналы',
+      }[l] ??
+      'Удобный канал связи';
+  static String _contactValueLabel(String l) =>
+      {
+        'en': 'Phone number or Telegram',
+        'ru': 'Телефон или Telegram',
+        'ky': 'Телефон же Telegram',
+      }[l] ??
+      'Телефон или Telegram';
+  static String _noteLabel(String l) =>
+      {'en': 'Comment', 'ru': 'Комментарий', 'ky': 'Комментарий'}[l] ??
+      'Комментарий';
+  static String _guestsLabel(String l) =>
+      {'en': 'Guests', 'ru': 'Гостей', 'ky': 'Коноктор'}[l] ?? 'Гостей';
+  static String _whatsAppLabel(String l) =>
+      {'en': 'WhatsApp', 'ru': 'WhatsApp', 'ky': 'WhatsApp'}[l] ?? 'WhatsApp';
+  static String _telegramLabel(String l) =>
+      {'en': 'Telegram', 'ru': 'Telegram', 'ky': 'Telegram'}[l] ?? 'Telegram';
+  static String _contactValidationLabel(String l) =>
+      {
+        'en': 'Enter your name and contact details before sending the request.',
+        'ru': 'Укажите имя и контакт перед отправкой заявки.',
+        'ky': 'Сурам жөнөтүүдөн мурун атыңызды жана контактыңызды жазыңыз.',
+      }[l] ??
+      'Укажите имя и контакт.';
+  static String _submitErrorLabel(String l) =>
+      {
+        'en': 'Failed to send booking request. Please try again.',
+        'ru': 'Не удалось отправить заявку. Попробуйте ещё раз.',
+        'ky': 'Сурам жөнөтүлгөн жок. Кайра аракет кылыңыз.',
+      }[l] ??
+      'Не удалось отправить заявку.';
+  static String _availabilityTitle(String l) =>
+      {'en': 'Availability', 'ru': 'Доступность', 'ky': 'Жеткиликтүүлүк'}[l] ??
       'Доступность';
   static String _conflictLabel(String l) =>
       {
@@ -530,10 +760,10 @@ class _AvailabilityLegend extends StatelessWidget {
   }
 
   Widget _dot(Color c) => Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-      );
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
 
   static const _style = TextStyle(fontSize: 11, color: AppColors.textSecondary);
 
@@ -542,7 +772,8 @@ class _AvailabilityLegend extends StatelessWidget {
   String get _bookedLabel =>
       {'en': 'Booked', 'ru': 'Занято', 'ky': 'Бронь'}[locale] ?? 'Занято';
   String get _selectedLabel =>
-      {'en': 'Selected', 'ru': 'Выбрано', 'ky': 'Тандалды'}[locale] ?? 'Выбрано';
+      {'en': 'Selected', 'ru': 'Выбрано', 'ky': 'Тандалды'}[locale] ??
+      'Выбрано';
 }
 
 class _AvailabilityCalendar extends StatelessWidget {
@@ -610,18 +841,20 @@ class _AvailabilityCalendar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: _weekdayHeaders(locale)
-                  .map((h) => Expanded(
-                        child: Center(
-                          child: Text(
-                            h,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textTertiary,
-                            ),
+                  .map(
+                    (h) => Expanded(
+                      child: Center(
+                        child: Text(
+                          h,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textTertiary,
                           ),
                         ),
-                      ))
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -669,8 +902,7 @@ class _AvailabilityCalendar extends StatelessWidget {
                 }
 
                 return GestureDetector(
-                  onTap:
-                      (isBlocked || isPast) ? null : () => onDayTap(day),
+                  onTap: (isBlocked || isPast) ? null : () => onDayTap(day),
                   child: Container(
                     decoration: BoxDecoration(
                       color: bgColor,
@@ -681,8 +913,9 @@ class _AvailabilityCalendar extends StatelessWidget {
                       '${dayOffset + 1}',
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
                         color: textColor,
                         decoration: isBlocked
                             ? TextDecoration.lineThrough
@@ -722,16 +955,49 @@ class _AvailabilityCalendar extends StatelessWidget {
 
   static String _monthName(int m, String l) {
     const ru = [
-      '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+      '',
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь',
     ];
     const en = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      '',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const ky = [
-      '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+      '',
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь',
     ];
     if (l == 'en') return en[m];
     if (l == 'ky') return ky[m];

@@ -56,6 +56,21 @@ class ParkPass {
     );
   }
 
+  Map<String, dynamic> toFirestore() => {
+    'userId': userId,
+    'type': type.name,
+    'category': category.name,
+    'validFrom': Timestamp.fromDate(validFrom),
+    'validTo': Timestamp.fromDate(validTo),
+    'qrCode': qrCode,
+    'status': status.name,
+    'price': price,
+    'currency': currency,
+    if (paymentId != null) 'paymentId': paymentId,
+    if (scannedAt != null) 'scannedAt': Timestamp.fromDate(scannedAt!),
+    if (scannedBy != null) 'scannedBy': scannedBy,
+  };
+
   bool get isValid =>
       status == PassStatus.active && DateTime.now().isBefore(validTo);
 }

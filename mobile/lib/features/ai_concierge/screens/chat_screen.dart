@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/booking_provider.dart';
+import '../../../core/providers/service_provider.dart';
 import '../../../core/utils/l10n_extension.dart';
 import '../widgets/chat_bubble.dart';
 
@@ -17,6 +19,7 @@ class _ChatMessage {
 }
 
 final _messagesProvider = StateProvider<List<_ChatMessage>>((ref) => []);
+final _chatSessionProvider = StateProvider<String?>((ref) => null);
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -53,6 +56,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     _controller.clear();
     setState(() => _sending = true);
+    final language = Localizations.localeOf(context).languageCode;
 
     final messages = ref.read(_messagesProvider.notifier);
     messages.state = [
@@ -61,20 +65,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ];
     _scrollToBottom();
 
-    // TODO: Call Claude API through Cloud Functions
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final sessionNotifier = ref.read(_chatSessionProvider.notifier);
+      final sessionId =
+          sessionNotifier.state ??
+          'mobile-${DateTime.now().millisecondsSinceEpoch}';
+      sessionNotifier.state = sessionId;
 
-    messages.state = [
-      ...messages.state,
-      _ChatMessage(
-        text: 'I\'m Archa, your AI mountain guide. This feature is coming soon! I\'ll be able to help you book accommodations, gondola rides, tours, and more.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    ];
+      final response = await ref
+          .read(backendApiProvider)
+          .sendAiChatMessage(
+            sessionId: sessionId,
+            message: text,
+            language: language,
+          );
 
-    setState(() => _sending = false);
-    _scrollToBottom();
+      if (response.sessionId.isNotEmpty) {
+        sessionNotifier.state = response.sessionId;
+      }
+
+      if (response.booking != null) {
+        ref.read(devBookingsProvider.notifier).add(response.booking!);
+      }
+
+      messages.state = [
+        ...messages.state,
+        _ChatMessage(
+          text: response.reply.isEmpty
+              ? _fallbackReply(language)
+              : response.reply,
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      ];
+    } catch (_) {
+      messages.state = [
+        ...messages.state,
+        _ChatMessage(
+          text: _errorReply(language),
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      ];
+    } finally {
+      if (mounted) setState(() => _sending = false);
+      _scrollToBottom();
+    }
   }
 
   @override
@@ -93,11 +129,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.landscape,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.landscape, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Text(l.aiConcierge),
@@ -202,5 +234,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ],
       ),
     );
+  }
+}
+
+String _fallbackReply(String language) {
+  switch (language) {
+    case 'en':
+      return 'I can help with services, dates, and booking. Tell me what you want to reserve.';
+    case 'ky':
+      return 'Кызматтарды, даталарды жана бронду тандап берүүгө жардам берем. Эмне брондойлу?';
+    default:
+      return 'Я могу помочь с услугами, датами и бронированием. Напишите, что хотите забронировать.';
+  }
+}
+
+String _errorReply(String language) {
+  switch (language) {
+    case 'en':
+      return 'I cannot reach the AI right now. Please try again in a moment.';
+    case 'ky':
+      return 'Азыр ИИ менен байланыш жок. Бир аздан кийин кайра аракет кылыңыз.';
+    default:
+      return 'Сейчас не получается связаться с ИИ. Попробуйте ещё раз через минуту.';
   }
 }

@@ -5,14 +5,12 @@ import '../../../core/utils/l10n_extension.dart';
 class QuickActions extends StatelessWidget {
   final VoidCallback onBuyPass;
   final VoidCallback onMyPasses;
-  final VoidCallback onGondola;
   final VoidCallback onTours;
 
   const QuickActions({
     super.key,
     required this.onBuyPass,
     required this.onMyPasses,
-    required this.onGondola,
     required this.onTours,
   });
 
@@ -34,13 +32,6 @@ class QuickActions extends StatelessWidget {
           label: l.myPasses,
           color: AppColors.accent,
           onTap: onMyPasses,
-        ),
-        const SizedBox(width: 12),
-        _ActionItem(
-          icon: Icons.tram,
-          label: l.gondola,
-          color: AppColors.secondary,
-          onTap: onGondola,
         ),
         const SizedBox(width: 12),
         _ActionItem(
