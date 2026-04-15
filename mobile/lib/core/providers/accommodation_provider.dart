@@ -9,13 +9,15 @@ final accommodationsProvider = StreamProvider<List<Accommodation>>((ref) {
   return ref.watch(firestoreServiceProvider).watchAccommodations();
 });
 
-final accommodationProvider =
-    FutureProvider.family<Accommodation?, String>((ref, id) async {
+final accommodationProvider = FutureProvider.family<Accommodation?, String>((
+  ref,
+  id,
+) async {
   if (AppConfig.devMode) {
-    return MockData.accommodations.firstWhere(
-      (a) => a.id == id,
-      orElse: () => MockData.accommodations.first,
-    );
+    for (final accommodation in MockData.accommodations) {
+      if (accommodation.id == id) return accommodation;
+    }
+    return null;
   }
   return ref.read(firestoreServiceProvider).getAccommodation(id);
 });

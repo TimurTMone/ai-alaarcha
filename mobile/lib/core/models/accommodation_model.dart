@@ -14,6 +14,7 @@ class Accommodation {
   final String currency;
   final GeoPoint? location;
   final bool includesGondola;
+  final String? bookingPhone;
   final double rating;
   final int reviewCount;
 
@@ -29,6 +30,7 @@ class Accommodation {
     this.currency = 'USD',
     this.location,
     this.includesGondola = false,
+    this.bookingPhone,
     this.rating = 0,
     this.reviewCount = 0,
   });
@@ -47,6 +49,7 @@ class Accommodation {
       currency: data['currency'] as String? ?? 'USD',
       location: data['location'] as GeoPoint?,
       includesGondola: data['includesGondola'] as bool? ?? false,
+      bookingPhone: data['bookingPhone'] as String?,
       rating: (data['rating'] as num?)?.toDouble() ?? 0,
       reviewCount: data['reviewCount'] as int? ?? 0,
     );

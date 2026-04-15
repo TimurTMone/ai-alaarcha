@@ -3,8 +3,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/constants/app_config.dart';
+import 'core/providers/locale_provider.dart';
 import 'firebase_options.dart';
 
 /// Top-level handler for background FCM messages (required by Firebase).
@@ -16,6 +18,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final sharedPreferences = await SharedPreferences.getInstance();
 
   if (AppConfig.devMode) {
     if (kDebugMode) {
@@ -28,5 +31,12 @@ void main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
-  runApp(const ProviderScope(child: AlaArchaApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWith((ref) => sharedPreferences),
+      ],
+      child: const AlaArchaApp(),
+    ),
+  );
 }

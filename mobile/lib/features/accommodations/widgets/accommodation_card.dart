@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/accommodation_model.dart';
-import '../../../core/utils/l10n_extension.dart';
+import 'accommodation_image_backdrop.dart';
+import 'accommodation_presentation.dart';
 
 class AccommodationCard extends StatelessWidget {
   final Accommodation accommodation;
@@ -15,106 +16,148 @@ class AccommodationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = context.l10n;
+    final locale = Localizations.localeOf(context).languageCode;
+    final topAmenities = accommodation.amenities.take(3).toList();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: InkWell(
+        onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            Container(
-              height: 160,
+            SizedBox(
+              height: 220,
               width: double.infinity,
-              color: AppColors.primary.withValues(alpha: 0.08),
-              child: const Center(
-                child: Icon(
-                  Icons.landscape,
-                  size: 56,
-                  color: AppColors.primary,
+              child: AccommodationImageBackdrop(
+                accommodation: accommodation,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _GlassChip(
+                            icon: Icons.hotel_class_rounded,
+                            label: AccommodationPresentation.typeLabel(
+                              accommodation.type,
+                              locale,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (accommodation.rating > 0)
+                            _GlassChip(
+                              icon: Icons.star_rounded,
+                              label:
+                                  '${accommodation.rating.toStringAsFixed(1)} · ${accommodation.reviewCount}',
+                            ),
+                        ],
+                      ),
+                      const Spacer(),
+                      if (accommodation.includesGondola)
+                        _GlassChip(
+                          icon: Icons.tram_rounded,
+                          label: _gondolaLabel(locale),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
                           accommodation.name,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 22,
+                            color: AppColors.textPrimary,
+                            height: 1.15,
                           ),
                         ),
                       ),
-                      if (accommodation.rating > 0)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              size: 16,
-                              color: AppColors.secondary,
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            AccommodationPresentation.priceLabel(accommodation),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 22,
+                              color: AppColors.primary,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              accommodation.rating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
+                          ),
+                          Text(
+                            AccommodationPresentation.perNightLabel(locale),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    accommodation.localizedDescription(locale),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _InfoPill(
+                        icon: Icons.people_alt_outlined,
+                        label: AccommodationPresentation.guestCapacityLabel(
+                          accommodation.capacity,
+                          locale,
+                        ),
+                      ),
+                      for (final amenity in topAmenities)
+                        _InfoPill(
+                          icon: AccommodationPresentation.amenityIcon(amenity),
+                          label: AccommodationPresentation.amenityLabel(
+                            amenity,
+                            locale,
+                          ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Text(
-                        '\$${accommodation.pricePerNight.toInt()}',
+                        _detailsLabel(locale),
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.primary,
                         ),
                       ),
-                      Text(
-                        l.perNight,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: AppColors.primary,
                       ),
-                      const Spacer(),
-                      Icon(
-                        Icons.people,
-                        size: 16,
-                        color: AppColors.textTertiary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${accommodation.capacity}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                      if (accommodation.includesGondola) ...[
-                        const SizedBox(width: 12),
-                        const Icon(
-                          Icons.tram,
-                          size: 16,
-                          color: AppColors.secondary,
-                        ),
-                      ],
                     ],
                   ),
                 ],
@@ -122,6 +165,89 @@ class AccommodationCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static String _detailsLabel(String locale) =>
+      {
+        'en': 'View details',
+        'ru': 'Посмотреть детали',
+        'ky': 'Толугураак көрүү',
+      }[locale] ??
+      'Посмотреть детали';
+
+  static String _gondolaLabel(String locale) =>
+      {
+        'en': 'Gondola included',
+        'ru': 'Канатка включена',
+        'ky': 'Канат жолу кошулган',
+      }[locale] ??
+      'Канатка включена';
+}
+
+class _GlassChip extends StatelessWidget {
+  const _GlassChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

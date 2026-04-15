@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_config.dart';
 import '../../../core/models/accommodation_model.dart';
-import '../../../core/models/booking_model.dart';
+import '../../../core/providers/accommodation_provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/booking_provider.dart';
-import '../../../core/utils/l10n_extension.dart';
+import '../../../core/utils/contact_launcher.dart';
+import '../widgets/accommodation_image_backdrop.dart';
+import '../widgets/accommodation_presentation.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
-  final Accommodation accommodation;
+  final String accommodationId;
 
-  const BookingScreen({super.key, required this.accommodation});
+  const BookingScreen({super.key, required this.accommodationId});
 
   @override
   ConsumerState<BookingScreen> createState() => _BookingScreenState();
@@ -23,16 +22,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   DateTime? _checkIn;
   DateTime? _checkOut;
   int _guests = 2;
-  bool _isSubmitting = false;
+  final TextEditingController _noteController = TextEditingController();
+  bool _isOpeningWhatsApp = false;
 
   int get _nights => (_checkIn != null && _checkOut != null)
       ? _checkOut!.difference(_checkIn!).inDays
       : 0;
-
-  double get _totalPrice => _nights * widget.accommodation.pricePerNight;
-
-  bool get _canConfirm =>
-      _nights > 0 && _guests > 0 && _guests <= widget.accommodation.capacity;
 
   Future<void> _pickDates() async {
     final now = DateTime.now();
@@ -44,6 +39,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ? DateTimeRange(start: _checkIn!, end: _checkOut!)
           : null,
     );
+
     if (range != null) {
       setState(() {
         _checkIn = range.start;
@@ -52,173 +48,278 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     }
   }
 
-  Future<void> _confirm() async {
-    if (!_canConfirm) return;
+  Future<void> _openWhatsApp(Accommodation accommodation) async {
+    if (_guests > accommodation.capacity) return;
 
-    setState(() => _isSubmitting = true);
-    try {
-      final now = DateTime.now();
-      final bookingId = 'stay-${now.microsecondsSinceEpoch}';
-      final userId =
-          ref.read(currentUserProvider).valueOrNull?.uid ?? 'dev-user';
-      final booking = Booking(
-        id: bookingId,
-        userId: userId,
-        code: _shortCode(bookingId),
-        subjectTitle: widget.accommodation.name,
-        subjectType: BookingSubject.accommodation,
-        subjectId: widget.accommodation.id,
-        quantity: _nights,
-        startsAt: _checkIn!,
-        endsAt: _checkOut!,
-        guests: _guests,
-        totalPriceKgs: _totalPrice.round(),
-        currency: widget.accommodation.currency,
-        status: BookingStatus.pendingPayment,
-        createdAt: now,
-      );
+    final locale = Localizations.localeOf(context).languageCode;
+    final user = ref.read(currentUserProvider).valueOrNull;
+    final message = AccommodationPresentation.bookingMessage(
+      accommodation: accommodation,
+      guests: _guests,
+      checkIn: _checkIn,
+      checkOut: _checkOut,
+      note: _noteController.text,
+      customerName: user?.displayName ?? user?.email ?? user?.phone,
+      locale: locale,
+    );
 
-      if (AppConfig.devMode || AppConfig.useBackendBookings) {
-        ref.read(devBookingsProvider.notifier).add(booking);
-      } else {
-        await ref.read(firestoreServiceProvider).createBooking(booking);
-      }
-
-      if (!mounted) return;
-      context.pushReplacement('/bookings/${booking.id}/pay');
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    setState(() => _isOpeningWhatsApp = true);
+    await ContactLauncher.openWhatsApp(
+      context: context,
+      phoneNumber: AccommodationPresentation.bookingPhone(accommodation),
+      message: message,
+    );
+    if (mounted) {
+      setState(() => _isOpeningWhatsApp = false);
     }
   }
 
-  String _shortCode(String id) => id.length <= 6
-      ? id.toUpperCase()
-      : id.substring(id.length - 6).toUpperCase();
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l = context.l10n;
-    final dateFormat = DateFormat('dd MMM');
+    final locale = Localizations.localeOf(context).languageCode;
+    final dateFormat = DateFormat('d MMM', locale);
+    final accommodation = ref.watch(
+      accommodationProvider(widget.accommodationId),
+    );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.accommodation.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _SectionLabel(label: l.selectDates),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: _pickDates,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today, color: AppColors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _checkIn != null && _checkOut != null
-                          ? '${dateFormat.format(_checkIn!)} — ${dateFormat.format(_checkOut!)}'
-                          : l.selectDates,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: _checkIn != null
-                            ? AppColors.textPrimary
-                            : AppColors.textTertiary,
+      appBar: AppBar(title: Text(_pageTitle(locale))),
+      body: accommodation.when(
+        data: (item) {
+          if (item == null) {
+            return Center(child: Text(_notFoundLabel(locale)));
+          }
+
+          final summaryTotal = _nights > 0
+              ? AccommodationPresentation.formatAmount(
+                  item.pricePerNight * _nights,
+                  item.currency,
+                )
+              : null;
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 130),
+            children: [
+              _BookingHero(accommodation: item, locale: locale),
+              const SizedBox(height: 20),
+              _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionLabel(label: _datesLabel(locale)),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: _pickDates,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_month_rounded,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Text(
+                                _checkIn != null && _checkOut != null
+                                    ? '${dateFormat.format(_checkIn!)} - ${dateFormat.format(_checkOut!)}'
+                                    : _datesPlaceholder(locale),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: _checkIn != null
+                                      ? AppColors.textPrimary
+                                      : AppColors.textTertiary,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textTertiary,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textTertiary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _SectionLabel(label: l.guests),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.people, color: AppColors.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '$_guests',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 20),
+                    _SectionLabel(label: _guestsLabel(locale)),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.people_alt_rounded,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              _guestCountLabel(locale, _guests),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _guests > 1
+                                ? () => setState(() => _guests--)
+                                : null,
+                            icon: const Icon(
+                              Icons.remove_circle_outline_rounded,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _guests < item.capacity
+                                ? () => setState(() => _guests++)
+                                : null,
+                            icon: const Icon(Icons.add_circle_outline_rounded),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: _guests > 1
-                      ? () => setState(() => _guests--)
-                      : null,
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                IconButton(
-                  onPressed: _guests < widget.accommodation.capacity
-                      ? () => setState(() => _guests++)
-                      : null,
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            l.maxCapacity(widget.accommodation.capacity),
-            style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: 24),
-          if (_nights > 0) ...[
-            _SectionLabel(label: l.total),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                    const SizedBox(height: 8),
+                    Text(
+                      _maxGuestsLabel(locale, item.capacity),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                children: [
-                  _SummaryRow(
-                    label:
-                        '\$${widget.accommodation.pricePerNight.toInt()} × ${l.nightCount(_nights)}',
-                    value: '\$${_totalPrice.toInt()}',
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  _SummaryRow(
-                    label: l.total,
-                    value: '\$${_totalPrice.toInt()}',
-                    bold: true,
-                  ),
-                ],
+              const SizedBox(height: 18),
+              _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionLabel(label: _noteFieldLabel(locale)),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _noteController,
+                      minLines: 3,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        hintText: _notePlaceholder(locale),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF25D366).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF25D366),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chat_bubble_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _whatsAppInfo(locale),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 18),
+              _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionLabel(label: _summaryLabel(locale)),
+                    const SizedBox(height: 16),
+                    _SummaryRow(
+                      label: _pricePerNightLabel(locale),
+                      value:
+                          '${AccommodationPresentation.priceLabel(item)} · ${AccommodationPresentation.perNightLabel(locale)}',
+                    ),
+                    _SummaryRow(
+                      label: _datesSummaryLabel(locale),
+                      value: _checkIn != null && _checkOut != null
+                          ? '${dateFormat.format(_checkIn!)} - ${dateFormat.format(_checkOut!)}'
+                          : _flexibleLabel(locale),
+                    ),
+                    _SummaryRow(
+                      label: _contactLabel(locale),
+                      value: AccommodationPresentation.bookingPhone(item),
+                    ),
+                    if (summaryTotal != null) ...[
+                      const Divider(height: 28),
+                      _SummaryRow(
+                        label: _totalLabel(locale),
+                        value: summaryTotal,
+                        bold: true,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => Center(child: Text(_errorLabel(locale))),
       ),
       bottomSheet: Container(
         padding: const EdgeInsets.all(20),
@@ -227,15 +328,37 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: SafeArea(
-          child: ElevatedButton(
-            onPressed: _canConfirm && !_isSubmitting ? _confirm : null,
-            child: _isSubmitting
+          child: FilledButton.icon(
+            onPressed: _isOpeningWhatsApp
+                ? null
+                : () {
+                    final item = accommodation.valueOrNull;
+                    if (item == null) return;
+                    _openWhatsApp(item);
+                  },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+            ),
+            icon: _isOpeningWhatsApp
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
-                : Text(l.confirmBooking),
+                : Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: Colors.white24,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.chat_bubble_rounded, size: 16),
+                  ),
+            label: Text(_buttonLabel(locale)),
           ),
         ),
       ),
@@ -245,6 +368,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
 class _SectionLabel extends StatelessWidget {
   final String label;
+
   const _SectionLabel({required this.label});
 
   @override
@@ -252,9 +376,9 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textSecondary,
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -273,17 +397,242 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(
-      fontSize: bold ? 16 : 14,
-      fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-      color: bold ? AppColors.textPrimary : AppColors.textSecondary,
-    );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(value, style: style),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _BookingHero extends StatelessWidget {
+  const _BookingHero({required this.accommodation, required this.locale});
+
+  final Accommodation accommodation;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: SizedBox(
+        height: 220,
+        child: AccommodationImageBackdrop(
+          accommodation: accommodation,
+          showPlaceholderIcon: false,
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    AccommodationPresentation.typeLabel(
+                      accommodation.type,
+                      locale,
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  accommodation.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AccommodationPresentation.priceLabel(accommodation),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _heroSubtitle(locale),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _heroSubtitle(String locale) =>
+      {
+        'en': 'Choose dates and open a ready-made request in WhatsApp.',
+        'ru': 'Выберите даты и откройте готовую заявку в WhatsApp.',
+        'ky': 'Күндөрдү тандап, WhatsApp ичинде даяр арызды ачыңыз.',
+      }[locale] ??
+      'Выберите даты и откройте готовую заявку в WhatsApp.';
+}
+
+String _pageTitle(String locale) =>
+    {
+      'en': 'Booking request',
+      'ru': 'Заявка на бронирование',
+      'ky': 'Брондоо арызы',
+    }[locale] ??
+    'Заявка на бронирование';
+
+String _notFoundLabel(String locale) =>
+    {
+      'en': 'Accommodation not found',
+      'ru': 'Проживание не найдено',
+      'ky': 'Жашоо жайы табылган жок',
+    }[locale] ??
+    'Проживание не найдено';
+
+String _datesLabel(String locale) =>
+    {'en': 'Dates', 'ru': 'Даты', 'ky': 'Күндөр'}[locale] ?? 'Даты';
+
+String _datesPlaceholder(String locale) =>
+    {
+      'en': 'Select dates or leave flexible',
+      'ru': 'Выберите даты или оставьте гибкими',
+      'ky': 'Күндөрдү тандаңыз же бош калтырыңыз',
+    }[locale] ??
+    'Выберите даты или оставьте гибкими';
+
+String _guestsLabel(String locale) =>
+    {'en': 'Guests', 'ru': 'Гости', 'ky': 'Коноктор'}[locale] ?? 'Гости';
+
+String _guestCountLabel(String locale, int guests) => switch (locale) {
+  'en' => '$guests guests',
+  'ky' => '$guests конок',
+  _ => '$guests гостей',
+};
+
+String _maxGuestsLabel(String locale, int capacity) => switch (locale) {
+  'en' => 'Up to $capacity guests',
+  'ky' => 'Эң көбү $capacity конок',
+  _ => 'Максимум $capacity гостей',
+};
+
+String _noteFieldLabel(String locale) =>
+    {'en': 'Comment', 'ru': 'Комментарий', 'ky': 'Комментарий'}[locale] ??
+    'Комментарий';
+
+String _notePlaceholder(String locale) =>
+    {
+      'en': 'Write a request, arrival time, or any wishes.',
+      'ru': 'Напишите пожелания, время заезда или важные детали.',
+      'ky':
+          'Каалоолоруңузду, келүү убактыңызды же маанилүү деталдарды жазыңыз.',
+    }[locale] ??
+    'Напишите пожелания, время заезда или важные детали.';
+
+String _whatsAppInfo(String locale) =>
+    {
+      'en':
+          'After tapping the button, WhatsApp will open with a ready-made message to the accommodation manager.',
+      'ru':
+          'После нажатия откроется WhatsApp с готовым сообщением для менеджера проживания.',
+      'ky':
+          'Баскычты баскандан кийин жашоо жайынын менеджерине даяр билдирүү менен WhatsApp ачылат.',
+    }[locale] ??
+    'После нажатия откроется WhatsApp с готовым сообщением для менеджера проживания.';
+
+String _summaryLabel(String locale) =>
+    {
+      'en': 'Booking summary',
+      'ru': 'Сводка бронирования',
+      'ky': 'Брондоо жыйынтыгы',
+    }[locale] ??
+    'Сводка бронирования';
+
+String _pricePerNightLabel(String locale) =>
+    {'en': 'Rate', 'ru': 'Тариф', 'ky': 'Тариф'}[locale] ?? 'Тариф';
+
+String _datesSummaryLabel(String locale) =>
+    {'en': 'Dates', 'ru': 'Даты', 'ky': 'Күндөр'}[locale] ?? 'Даты';
+
+String _contactLabel(String locale) =>
+    {'en': 'WhatsApp', 'ru': 'WhatsApp', 'ky': 'WhatsApp'}[locale] ??
+    'WhatsApp';
+
+String _flexibleLabel(String locale) =>
+    {'en': 'Flexible', 'ru': 'Гибкие', 'ky': 'Эркин'}[locale] ?? 'Гибкие';
+
+String _totalLabel(String locale) =>
+    {'en': 'Total', 'ru': 'Итого', 'ky': 'Жалпы'}[locale] ?? 'Итого';
+
+String _buttonLabel(String locale) =>
+    {
+      'en': 'Book in WhatsApp',
+      'ru': 'Забронировать в WhatsApp',
+      'ky': 'WhatsApp менен брондоо',
+    }[locale] ??
+    'Забронировать в WhatsApp';
+
+String _errorLabel(String locale) =>
+    {
+      'en': 'Could not load accommodation',
+      'ru': 'Не удалось загрузить проживание',
+      'ky': 'Жашоо жайын жүктөө мүмкүн болгон жок',
+    }[locale] ??
+    'Не удалось загрузить проживание';

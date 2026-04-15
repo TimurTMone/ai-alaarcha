@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../constants/app_config.dart';
 import '../models/accommodation_model.dart';
 import '../models/pass_model.dart';
 import '../models/trail_model.dart';
@@ -8,12 +9,35 @@ import '../models/user_model.dart';
 
 /// Mock data for dev mode — lets the UI render without a Firebase connection.
 abstract final class MockData {
+  // Sources checked on 2026-04-15:
+  // - Official park overview: https://alaarchapark.kg/
+  // - Official price list: https://alaarchapark.kg/priceservice/
+  // - Official A-Frame media: https://alaarchapark.com/
+  // - Ala-Archa photos: Wikimedia Commons file pages for Ala-Archa National Park
   static const devUserId = 'dev-user';
+  static const _parkScenery =
+      'https://alaarchapark.kg/wp-content/uploads/2022/08/1-1024x682.jpeg';
+  static const _parkEntrance =
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Entrance%20of%20Ala%20Archa%20National%20Park.jpg';
+  static const _parkPanorama =
+      'https://www.marshruty.ru/Img.ashx?T=A&D=70f59503fb6c40b7ba17dd989cb8dbf8&F=IMG_4341.JPG&S=O&R=-588041821';
+  static const _parkValley =
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Ala%20Archa%20valley.jpg';
+  static const _parkMountains =
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Mountains%20in%20the%20National%20Park%20Ala%20Archa%2004.jpg';
+  static const _aFrameHero =
+      'https://modulhouse.kg/wp-content/uploads/2019/10/01JCCVJ44WNPD9FR54G1QEZQ74.webp';
+  static const _akBataHero =
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTWzPNRPqHEvVSDSDp8s-hehXCYp6PKYRNPg&s';
+  static const _aFrameExterior =
+      'https://alaarchapark.com/_next/static/media/03-exterior.ba144427.jpg';
+  static const _aFrameInterior =
+      'https://alaarchapark.com/_next/static/media/05-interior.581b48b1.jpg';
 
   static final AppUser devUser = AppUser(
     uid: devUserId,
     email: 'dev@ala-archa.kg',
-    displayName: 'Dev User',
+    displayName: null,
     createdAt: DateTime(2026),
   );
 
@@ -43,68 +67,80 @@ abstract final class MockData {
 
   static final accommodations = <Accommodation>[
     Accommodation(
-      id: 'mock-1',
-      name: 'Khan-Teniri Barnhouse A',
-      type: AccommodationType.barnhouse,
-      description: const {
-        'en': 'Premium mountain barnhouse with panoramic Tien Shan views',
-        'ru': 'Премиум горный барнхаус с панорамным видом на Тянь-Шань',
-        'ky': 'Тянь-Шань панорамалык көрүнүшү менен премиум барнхаус',
-      },
-      capacity: 6,
-      pricePerNight: 250,
-      amenities: const ['wifi', 'heating', 'kitchen', 'mountain_view'],
-      includesGondola: true,
-      rating: 4.8,
-      reviewCount: 24,
-    ),
-    Accommodation(
-      id: 'mock-2',
-      name: 'Alpine A-Frame Cabin',
+      id: 'aframe-cottage',
+      name: 'Коттедж A-Frame',
       type: AccommodationType.aFrame,
       description: const {
-        'en': 'Cozy A-frame cabin in the alpine forest',
-        'ru': 'Уютный А-образный домик в горном лесу',
-        'ky': 'Тоо токойундагы жайлуу А-формадагы үй',
+        'en':
+            'Official A-Frame cottage for 4 guests. The park price list shows 8,850 KGS per night; meals are self-catered.',
+        'ru':
+            'Официальный коттедж на 4 гостей. В прейскуранте парка указана цена 8 850 сом за сутки; питание гости привозят с собой.',
+        'ky':
+            '4 конокко ылайыкталган расмий A-Frame коттеджи. Парк прейскурантында баасы суткасына 8 850 сом, тамакты коноктор өздөрү алып келишет.',
       },
+      images: const [_aFrameHero, _aFrameExterior, _aFrameInterior],
       capacity: 4,
-      pricePerNight: 120,
-      amenities: const ['heating', 'fireplace', 'kitchenette'],
-      includesGondola: false,
-      rating: 4.6,
-      reviewCount: 18,
+      pricePerNight: 8850,
+      currency: 'KGS',
+      amenities: const ['fireplace', 'kitchenette', 'mountain_view'],
+      bookingPhone: AppConfig.aframeCottagesPhone,
     ),
     Accommodation(
-      id: 'mock-3',
-      name: 'Mountain Dome',
-      type: AccommodationType.dome,
+      id: 'hotel-ala-archa',
+      name: 'Гостиница «Ала-Арча»',
+      type: AccommodationType.hotelRoom,
       description: const {
-        'en': 'Geodesic dome with transparent ceiling for stargazing',
-        'ru': 'Геодезический купол с прозрачным потолком',
-        'ky': 'Тунук шыптуу геодезиялык купол',
+        'en':
+            'Standard double room in the park’s main hotel. The official price list also mentions junior suites, a suite, and a four-bed room; breakfast is included.',
+        'ru':
+            'Стандартный двухместный номер в главной гостинице парка. В официальном прейскуранте также указаны полулюксы, люкс и четырехместный номер; завтрак включён.',
+        'ky':
+            'Парктын башкы мейманканасындагы стандарттык эки кишилик номер. Расмий прейскурантта жарым люкс, люкс жана төрт кишилик номер да көрсөтүлгөн; эртең мененки тамак кошулат.',
       },
-      capacity: 3,
-      pricePerNight: 90,
-      amenities: const ['transparent_ceiling', 'heating'],
-      includesGondola: false,
-      rating: 4.9,
-      reviewCount: 31,
+      images: const [_parkPanorama, _parkScenery],
+      capacity: 2,
+      pricePerNight: 4000,
+      currency: 'KGS',
+      amenities: const ['breakfast', 'mountain_view', 'parking'],
+      bookingPhone: AppConfig.hotelAlaArchaPhone,
     ),
     Accommodation(
-      id: 'mock-4',
-      name: 'ALTO Cabin',
-      type: AccommodationType.cabin,
+      id: 'hotel-ak-maral',
+      name: 'Гостиница «Ак-Марал»',
+      type: AccommodationType.hotelRoom,
       description: const {
-        'en': 'Modern mountain cabin',
-        'ru': 'Современная горная кабина',
-        'ky': 'Заманбап тоо кабинасы',
+        'en':
+            'Small park hotel with three room options in the official price list, including double rooms and one variant that can host up to 4 guests.',
+        'ru':
+            'Небольшая гостиница на территории парка. В официальном прейскуранте указаны три варианта номеров, включая двухместные и номер с малым залом на 4 гостей.',
+        'ky':
+            'Парктын аймагындагы чакан мейманкана. Расмий прейскурантта үч номер көрсөтүлгөн: эки кишилик жана 4 конокко ылайык вариант да бар.',
       },
-      capacity: 4,
-      pricePerNight: 150,
-      amenities: const ['wifi', 'heating', 'kitchen'],
-      includesGondola: false,
-      rating: 4.7,
-      reviewCount: 15,
+      images: const [_parkValley, _parkEntrance],
+      capacity: 2,
+      pricePerNight: 4000,
+      currency: 'KGS',
+      amenities: const ['mountain_view', 'parking'],
+      bookingPhone: AppConfig.hotelAkmaralPhone,
+    ),
+    Accommodation(
+      id: 'hotel-ak-bata',
+      name: 'Гостиница «Ак-Бата»',
+      type: AccommodationType.hotelRoom,
+      description: const {
+        'en':
+            'Double luxury room with breakfast. The official park price list also lists junior suites for 7,000 KGS per night.',
+        'ru':
+            'Двухместный номер люкс с завтраком. В официальном прейскуранте парка у этого объекта также указаны полулюксы по 7 000 сом за сутки.',
+        'ky':
+            'Эртең мененки тамагы кошулган эки кишилик люкс номер. Парктын расмий прейскурантында бул объект үчүн суткасына 7 000 сомдук жарым люкс да көрсөтүлгөн.',
+      },
+      images: const [_akBataHero, _parkMountains, _parkEntrance],
+      capacity: 2,
+      pricePerNight: 5000,
+      currency: 'KGS',
+      amenities: const ['breakfast', 'mountain_view', 'parking'],
+      bookingPhone: AppConfig.hotelAkBataPhone,
     ),
   ];
 
